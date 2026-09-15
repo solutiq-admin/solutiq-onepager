@@ -42,3 +42,5 @@ next-env.d.ts
 
 SOLUTIQ_OnePager_Claude_Code_Build_Guide.md
 SOLUTIQ One-Page (standalone).html
+
+.env.local

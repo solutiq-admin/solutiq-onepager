@@ -1,7 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@700&family=Cabin:wght@400;500;600&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-/* @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@700&family=Cabin:wght@400;500;600&display=swap'); */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -133,5 +133,132 @@
 
   html {
     @apply font-sans;
+  }
+}
+
+.hero {
+  background: #000000;
+}
+
+.hero-pattern {
+  background-image: radial-gradient(rgba(249,182,48,0.09) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1), transparent 55%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1), transparent 55%);
+  opacity: 0.95;
+}
+
+.hero-fade {
+  background: radial-gradient(circle at 78% 42%, rgba(249,182,48,0.04), transparent 12%), linear-gradient(120deg, transparent, rgba(255,255,255,0.03));
+  opacity: 0.75;
+}
+
+.hero-eyebrow,
+.hero-title,
+.hero-subhead,
+.hero-primary-button,
+.hero-link {
+  font-family: var(--font-heading);
+}
+
+.hero-title .hero-line {
+  font-size: 61px;
+  font-family: var(--font-heading);
+}
+
+.hero-subhead {
+  font-family: var(--font-body);
+  font-size: 20px;
+  max-width: 500px;
+}
+
+.hero-primary-button,
+.hero-link {
+  font-family: var(--font-heading);
+}
+
+.hero-primary-button {
+  font-weight: 700;
+}
+
+.hero-link {
+  font-weight: 700;
+}
+
+.hero-ghost {
+  position: absolute;
+  right: -30px;
+  bottom: -40px;
+  width: 220px;
+  opacity: 0.045;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (min-width: 641px) {
+  .hero-ghost {
+    right: -40px;
+    bottom: -70px;
+    width: 360px;
+  }
+}
+
+hero-title,
+hero-subhead,
+hero-eyebrow,
+hero-ghost,
+hero-primary-button,
+hero-link {
+  animation: fadeSlide 640ms ease forwards;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-eyebrow { animation: fadeSlide 180ms ease both; }
+  .hero-title .hero-line:nth-child(1) { animation: fadeSlide 240ms ease both; }
+  .hero-title .hero-line:nth-child(2) { animation: fadeSlide 300ms ease both; }
+  .hero-subhead { animation: fadeSlide 360ms ease both; }
+  .hero-primary-button { animation: fadeSlide 420ms ease both; }
+  .hero-link { animation: fadeSlide 520ms ease both; }
+}
+
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (min-width: 641px) and (max-width: 960px) {
+  .hero-title .hero-line {
+    font-size: 49px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-title .hero-line {
+    font-size: 39px !important;
+  }
+
+  #practices .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .who-lead {
+    font-size: 18px !important;
+  }
+
+  .contact-h1 {
+    font-size: 39px !important;
+  }
+
+  .footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .footer-grid .brand-block {
+    grid-column: 1 / -1;
+  }
+
+  footer .footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
