@@ -96,3 +96,13 @@ rather than building around it.
 Full phase-by-phase build steps live in `SOLUTIQ_OnePager_Claude_Code_Build_Guide.md`
 in this repo. Follow phase order — don't jump ahead (e.g. don't wire the contact form
 before the sections it lives inside exist).
+
+
+- SOLUTIQ is always written in full capitals. Domain is solutiq.africa.
+- British/South African spelling everywhere: organisation, programme, authorise, colour.
+- The old tagline is retired. The only active line is the descriptor "Technology · Talent · Partnership".
+- Brand constants live in lib/brand.ts and are never CMS-editable.
+- Single-engineer maintainability is a hard constraint. No abstractions until a pattern appears three times. No libraries for things achievable in about ten lines. Whole files, not partial snippets. Server actions for our own writes; API routes only where an external service calls us.
+- Gold is a sparse accent only, never small body text. Logo is white on dark, black on light, never boxed.
+- The Event Registration Module is specified in docs/event-registration-guide.md (Part 2 is the spec). Work one phase at a time and stop at the end of each phase.
+- Never touch the existing Supabase Black Book table or the old /black-book page unless told to.
