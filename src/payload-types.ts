@@ -68,6 +68,7 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
+    people: Person;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -76,6 +77,7 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
+    people: PeopleSelect<false> | PeopleSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -121,8 +123,13 @@ export interface UserAuthOperations {
  */
 export interface User {
   id: number;
+  name: string;
+  role: 'super-admin' | 'event-manager' | 'list-viewer';
   updatedAt: string;
   createdAt: string;
+  /**
+   * Must end in @solutiq.africa. This is the sender address for bulk emails.
+   */
   email: string;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
@@ -140,6 +147,38 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "people".
+ */
+export interface Person {
+  id: number;
+  fullName: string;
+  email: string;
+  type: 'guest' | 'partner' | 'other';
+  organisation?: string | null;
+  /**
+   * Staff only. Never shown to the person or included in emails.
+   */
+  internalNotes?: string | null;
+  futureEventsConsent?: boolean | null;
+  /**
+   * Set when the person unsubscribes.
+   */
+  marketingOptOut?: boolean | null;
+  /**
+   * Set by the delivery webhook after a hard bounce or complaint.
+   */
+  emailSuppressed?: boolean | null;
+  suppressedReason?: ('bounced' | 'complained') | null;
+  unsubscribeToken?: string | null;
+  /**
+   * Where this record came from, e.g. quick-add or shared-link.
+   */
+  createdVia?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -164,10 +203,15 @@ export interface PayloadKv {
  */
 export interface PayloadLockedDocument {
   id: number;
-  document?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
+  document?:
+    | ({
+        relationTo: 'users';
+        value: number | User;
+      } | null)
+    | ({
+        relationTo: 'people';
+        value: number | Person;
+      } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
@@ -215,6 +259,8 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  name?: T;
+  role?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -232,6 +278,25 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "people_select".
+ */
+export interface PeopleSelect<T extends boolean = true> {
+  fullName?: T;
+  email?: T;
+  type?: T;
+  organisation?: T;
+  internalNotes?: T;
+  futureEventsConsent?: T;
+  marketingOptOut?: T;
+  emailSuppressed?: T;
+  suppressedReason?: T;
+  unsubscribeToken?: T;
+  createdVia?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
