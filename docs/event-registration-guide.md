@@ -182,13 +182,13 @@ git add -A && git commit -m "phase C1: users, roles, people"
 
 ---
 
-## Phase C2: Events, Guestlist, Messages, Deliveries, quick-add
+## Phase C2: Events, Form templates, Guestlist, Messages, Deliveries, quick-add
 
-**Goal:** the remaining collections and the paste-in guestlist tool.
+**Goal:** the remaining collections, reusable registration form templates, and the paste-in guestlist tool.
 
 **Claude Code** (after `/clear`):
 
-> Read docs/event-registration-guide.md, Part 2 (Spec) and Phase C2 only. Do only C2: create Events (with extraFields array and the calendarSequence bump + revalidatePath hook), Guestlist (unique event+person index, token auto-generation, denormalised delivery summary fields, list columns and filters), Messages, and Deliveries (read-only in admin, no API create/update), all using access.ts. Then build the quick-add custom component on the Event edit view (textarea, one guest per line: Full name, email) as a server action that creates or finds People by email and creates invited Guestlist entries, reporting added/skipped/invalid counts. Admin nav groups: Events (Events, Guestlist, Messages, Deliveries), People, Settings (Users). Stop when done and tell me what to run.
+> Read docs/event-registration-guide.md, Part 2 (Spec) and Phase C2 only. Do only C2: create FormTemplates (name, description, questions array; the questions field config is defined once and shared with Events), Events (with the extraFields array, the applyTemplate copy-on-select behaviour, the "Save as template" action, and the calendarSequence bump + revalidatePath hook), Guestlist (unique event+person index, token auto-generation, denormalised delivery summary fields, list columns and filters), Messages, and Deliveries (read-only in admin, no API create/update), all using access.ts. Then build two custom components on the Event edit view: quick-add (textarea, one guest per line: Full name, email) as a server action that creates or finds People by email and creates invited Guestlist entries, reporting added/skipped/invalid counts; and "Save as template" (name input plus button, server action). Admin nav groups: Events (Events, Form templates, Guestlist, Messages, Deliveries), People, Settings (Users). Stop when done and tell me what to run.
 
 **You, in CMD:**
 
@@ -199,7 +199,7 @@ npm run build
 npm run dev
 ```
 
-In the admin: create a test event, paste three guests (use your own email addresses) into quick-add, confirm three Guestlist entries with unique tokens, confirm pasting the same list twice adds none. Change the event date and confirm `calendarSequence` went up.
+In the admin: create a form template with two questions; create a test event and apply the template (its questions must be copied into the event, and editing the template afterwards must NOT change the event); try applying a template to an event that already has questions (it must refuse with a clear message); on the event use "Save as template" to create a second template. Then paste three guests (use your own email addresses) into quick-add, confirm three Guestlist entries with unique tokens, confirm pasting the same list twice adds none. Change the event date and confirm `calendarSequence` went up.
 
 ```
 npx payload migrate:create c2_events_guestlist
@@ -373,6 +373,7 @@ A SOLUTIQ team member creates an event in the Payload admin at `/admin` and load
 - Payload 3 lives inside the existing Next.js 15 app (App Router, Tailwind v4, shadcn/ui, Vercel). Payload is the system of record for events, guestlists, People and deliveries.
 - Provider: **Resend** for sending and delivery webhooks.
 - Extra registration questions are an array field on the Event. No form-builder plugin. Name and email are always fixed fields in code.
+- Reusable registration forms are **templates** (a FormTemplates collection). Applying a template **copies** its questions into the event (a snapshot); events are never live-linked to a template, so editing or deleting a template never changes past events or their stored responses.
 - Do not touch the existing Supabase Black Book table or the old `/black-book` page.
 - Payload tables live in schema `payload`, outside `public` (which Supabase exposes through its API). Runtime uses the pooled connection; migrations are run manually from CMD, not in the Vercel build.
 - No abstractions until a pattern appears three times. No libraries for things achievable in about ten lines (write the `.ics` generator by hand). Server actions for our own writes; API routes only for the Resend webhook and one-click unsubscribe.
@@ -383,7 +384,7 @@ A SOLUTIQ team member creates an event in the Payload admin at `/admin` and load
 | Role | Can do |
 |---|---|
 | `super-admin` | Everything, including deleting records and managing users. |
-| `event-manager` | Create and edit events, guestlist entries, People; create messages and send; read deliveries. No deletes, no users. |
+| `event-manager` | Create and edit events, form templates (including deleting their own templates, which is safe because events hold copies), guestlist entries, People; create messages and send; read deliveries. No other deletes, no users. |
 | `list-viewer` | Read-only on People, Guestlist and Deliveries. No Messages, no Users. |
 
 Public (unauthenticated) access to any collection through `/api/...` is denied. Public pages read server-side; public writes use the Local API with `overrideAccess: true` inside server actions.
@@ -399,8 +400,16 @@ Public (unauthenticated) access to any collection through `/api/...` is denied. 
 
 **Events** (nav group "Events").
 - `title`, `slug` (unique, URL-safe), `status` (`draft`, `open`, `closed`, `cancelled`), `startsAt`, `endsAt`, `venueName`, `venueAddress`, `mapUrl`, `description` (Lexical rich text), `capacity` (optional), `registrationCloses` (optional), `openRegistration` (checkbox, default true; controls the shared link), `hostUser` (defaults to creator), `replyToEmail` (defaults to host's email), `confirmationNote` (textarea appended to confirmation emails), `extraFields` (array: `name` slug, `label`, `type` of text/textarea/select/checkbox, `required`, `options` for select).
+- `applyTemplate` (optional relationship to FormTemplates; a helper, not stored state). A `beforeChange` hook: if set, and the event's `extraFields` is empty, copy the template's questions into `extraFields`, then clear `applyTemplate`. If `extraFields` is not empty, reject with a clear validation message ("Clear this event's questions before applying a template") so questions are never overwritten by accident.
+- **Save as template** (custom component on the Event edit view): a name input and a button (server action) that creates a FormTemplate from the event's **saved** `extraFields`. Refuses a duplicate name and tells the user to save the event first if there are unsaved changes.
 - Hidden `calendarSequence` (number, starts 0). An `afterChange` hook increments it when `startsAt`, `endsAt`, `venueName`, `venueAddress` or `status` changes, and calls `revalidatePath` for the event's public routes.
 - Access: super-admin and event-manager create/update; only super-admin deletes; list-viewer reads.
+
+**FormTemplates** (nav group "Events", labelled "Form templates").
+- `name` (required, unique), `description` (optional, e.g. "Guests, dietary and plus-one"), `extraFields` (the same array of questions as on Events: `name` slug, `label`, `type` of text/textarea/select/checkbox, `required`, `options` for select). Define this array field config **once** in a shared constant and use it in both collections.
+- List view columns: name, description, number of questions, last updated. Sorted by most recently updated, so the team can go back to them easily.
+- Templates hold only questions. Name and email are always fixed in code, and consent wording stays a single versioned constant, so neither appears in a template.
+- Access: super-admin and event-manager create/update/delete; list-viewer has no access. Public read is not enabled.
 
 **Guestlist** (nav group "Events"; one row per person per event).
 - `event`, `person`, `token` (auto, 24 random bytes base64url, unique, read-only), `status` (`invited`, `registered`, `cancelled`), `source` (`guestlist`, `shared-link`, `manual`), `registeredAt`, `responses` (JSON of extra-field answers), denormalised `lastEmailStatus`, `lastInviteStatus`, `lastEmailAt` (read-only, written only by delivery code).
@@ -423,7 +432,7 @@ Users (full) and People (full), plus `access.ts`. Nothing else.
 
 ### Phase C2 scope
 
-Events, Guestlist (with quick-add), Messages, Deliveries as specified above. Nav groups: Events (Events, Guestlist, Messages, Deliveries), People, Settings (Users).
+FormTemplates, Events (with applyTemplate and Save as template), Guestlist (with quick-add), Messages, Deliveries as specified above. Nav groups: Events (Events, Form templates, Guestlist, Messages, Deliveries), People, Settings (Users).
 
 ### Phase D scope: public pages
 
@@ -479,6 +488,7 @@ Events, Guestlist (with quick-add), Messages, Deliveries as specified above. Nav
   - A bulk send with invite creates one Delivery per recipient, statuses update from webhooks, a bounced address shows `bounced` next to that person and is skipped in later sends.
   - Editing the event date bumps the sequence, an "update" replaces the invite instead of duplicating it, a "cancel" removes it.
   - Unsubscribe works, including one-click.
+  - Templates: applying a template copies its questions; later edits or deletion of the template leave existing events and stored responses untouched; the public form for an event renders from the event's own copy; "Save as template" produces a template that can be applied to a new event.
   - Existing pages and ISR unchanged; `npm run build` passes.
 
 ### Out of scope for now
