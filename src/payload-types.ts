@@ -386,6 +386,7 @@ export interface Delivery {
   error?: string | null;
   sentAt?: string | null;
   statusUpdatedAt?: string | null;
+  dedupeKey?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -589,6 +590,7 @@ export interface DeliveriesSelect<T extends boolean = true> {
   error?: T;
   sentAt?: T;
   statusUpdatedAt?: T;
+  dedupeKey?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -1,8 +1,10 @@
 "use server";
 
 import config from "@payload-config";
+import { after } from "next/server";
 import { getPayload } from "payload";
 
+import { sendConfirmation } from "@/lib/email/confirmation";
 import { CONSENT_VERSION } from "@/lib/events/consent";
 import { EVENT_COPY } from "@/lib/events/copy";
 import { getPublicEvent, registrationState, sharedLinkFull } from "@/lib/events/event";
@@ -111,6 +113,10 @@ export async function registerForEvent(
       });
     };
 
+    // Only a registration that actually happens here gets a confirmation;
+    // sendConfirmation itself refuses a second one for the same entry.
+    const confirm = (entryId: number) => after(() => sendConfirmation(entryId));
+
     // Personal link: the entry, and so the person and email, come from the token.
     if (token) {
       const { docs } = await payload.find({
@@ -125,6 +131,7 @@ export async function registerForEvent(
 
       await payload.update({ collection: "guestlist", id: entry.id, data: registration });
       await recordFutureConsent(entry.person);
+      confirm(entry.id);
       return success;
     }
 
@@ -139,6 +146,7 @@ export async function registerForEvent(
       if (existing.status === "invited") {
         await payload.update({ collection: "guestlist", id: existing.id, data: registration });
         await recordFutureConsent(existing.person);
+        confirm(existing.id);
       }
       // Registered already, or cancelled by the team: change nothing.
       return success;
@@ -148,8 +156,9 @@ export async function registerForEvent(
 
     // An existing person keeps their stored name.
     const person = found ?? (await createPerson(payload, email, fullName));
+    let created: Guestlist;
     try {
-      await payload.create({
+      created = await payload.create({
         collection: "guestlist",
         data: { event: event.id, person: person.id, source: "shared-link", ...registration },
       });
@@ -159,6 +168,7 @@ export async function registerForEvent(
       throw error;
     }
     await recordFutureConsent(person);
+    confirm(created.id);
     return success;
   } catch (error) {
     payload.logger.error({ err: error, msg: "registerForEvent failed" });

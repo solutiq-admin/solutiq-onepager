@@ -53,5 +53,14 @@ export const Deliveries: CollectionConfig = {
     { name: "error", type: "textarea" },
     { name: "sentAt", type: "date" },
     { name: "statusUpdatedAt", type: "date" },
+    {
+      // "confirmation:<guestlist entry id>" on automatic confirmations, empty
+      // otherwise. The unique index lets the database refuse a second
+      // confirmation for the same person and event, even under a race.
+      name: "dedupeKey",
+      type: "text",
+      unique: true,
+      admin: { hidden: true },
+    },
   ],
 };
