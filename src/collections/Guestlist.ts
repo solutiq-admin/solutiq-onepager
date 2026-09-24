@@ -150,6 +150,31 @@ export const Guestlist: CollectionConfig = {
       },
     },
     {
+      type: "row",
+      fields: [
+        {
+          name: "consentVersion",
+          type: "text",
+          access: systemOnly,
+          admin: {
+            width: "50%",
+            readOnly: true,
+            description: "Version of the POPIA consent wording the person agreed to.",
+          },
+        },
+        {
+          name: "consentedAt",
+          type: "date",
+          access: systemOnly,
+          admin: {
+            width: "50%",
+            readOnly: true,
+            date: { pickerAppearance: "dayAndTime", displayFormat: "d MMM yyyy, HH:mm" },
+          },
+        },
+      ],
+    },
+    {
       name: "token",
       type: "text",
       unique: true,

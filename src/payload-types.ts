@@ -297,6 +297,11 @@ export interface Guestlist {
     | boolean
     | null;
   /**
+   * Version of the POPIA consent wording the person agreed to.
+   */
+  consentVersion?: string | null;
+  consentedAt?: string | null;
+  /**
    * Personal registration link key. Generated automatically.
    */
   token?: string | null;
@@ -544,6 +549,8 @@ export interface GuestlistSelect<T extends boolean = true> {
   source?: T;
   registeredAt?: T;
   responses?: T;
+  consentVersion?: T;
+  consentedAt?: T;
   token?: T;
   lastInviteStatus?: T;
   lastEmailStatus?: T;
