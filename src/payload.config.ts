@@ -5,6 +5,11 @@ import { lexicalEditor } from "@payloadcms/richtext-lexical";
 import { buildConfig } from "payload";
 import sharp from "sharp";
 
+import { Deliveries } from "./collections/Deliveries";
+import { Events } from "./collections/Events";
+import { FormTemplates } from "./collections/FormTemplates";
+import { Guestlist } from "./collections/Guestlist";
+import { Messages } from "./collections/Messages";
 import { People } from "./collections/People";
 import { Users } from "./collections/Users";
 
@@ -24,7 +29,8 @@ export default buildConfig({
       titleSuffix: "- SOLUTIQ Admin",
     },
   },
-  collections: [Users, People],
+  // Order sets the admin nav: Events group, then People, then Settings.
+  collections: [Events, FormTemplates, Guestlist, Messages, Deliveries, People, Users],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || "",
   typescript: {

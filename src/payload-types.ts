@@ -67,8 +67,13 @@ export interface Config {
   };
   blocks: {};
   collections: {
-    users: User;
+    events: Event;
+    'form-templates': FormTemplate;
+    guestlist: Guestlist;
+    messages: Message;
+    deliveries: Delivery;
     people: Person;
+    users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -76,8 +81,13 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
+    events: EventsSelect<false> | EventsSelect<true>;
+    'form-templates': FormTemplatesSelect<false> | FormTemplatesSelect<true>;
+    guestlist: GuestlistSelect<false> | GuestlistSelect<true>;
+    messages: MessagesSelect<false> | MessagesSelect<true>;
+    deliveries: DeliveriesSelect<false> | DeliveriesSelect<true>;
     people: PeopleSelect<false> | PeopleSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -119,6 +129,121 @@ export interface UserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events".
+ */
+export interface Event {
+  id: number;
+  title: string;
+  /**
+   * Used in the public link: /events/<slug>. Filled from the title if left empty.
+   */
+  slug: string;
+  status: 'draft' | 'open' | 'closed' | 'cancelled';
+  startsAt: string;
+  endsAt: string;
+  venueName: string;
+  mapUrl?: string | null;
+  venueAddress?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Off: invite-only. Guests on the guestlist can still use their personal links.
+   */
+  openRegistration?: boolean | null;
+  /**
+   * Shared-link registrations only.
+   */
+  capacity?: number | null;
+  registrationCloses?: string | null;
+  /**
+   * Copies the template's questions into this event when you save. Only works while the event has no questions.
+   */
+  applyTemplate?: (number | null) | FormTemplate;
+  /**
+   * Asked after name and email, which are always included. Changing questions after people have registered does not change their stored answers.
+   */
+  extraFields?:
+    | {
+        /**
+         * The question as guests see it.
+         */
+        label: string;
+        /**
+         * Internal key, e.g. dietary_needs. Lowercase, numbers, underscores.
+         */
+        name: string;
+        type: 'text' | 'textarea' | 'select' | 'checkbox';
+        required?: boolean | null;
+        /**
+         * Type each choice and press Enter.
+         */
+        options?: string[] | null;
+        id?: string | null;
+      }[]
+    | null;
+  hostUser?: (number | null) | User;
+  /**
+   * Leave empty to use the host's email.
+   */
+  replyToEmail?: string | null;
+  /**
+   * Added to the end of every confirmation email.
+   */
+  confirmationNote?: string | null;
+  calendarSequence?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Reusable registration questions. Name, email and consent are always added in code.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form-templates".
+ */
+export interface FormTemplate {
+  id: number;
+  name: string;
+  description?: string | null;
+  /**
+   * Asked after name and email, which are always included. Changing questions after people have registered does not change their stored answers.
+   */
+  extraFields?:
+    | {
+        /**
+         * The question as guests see it.
+         */
+        label: string;
+        /**
+         * Internal key, e.g. dietary_needs. Lowercase, numbers, underscores.
+         */
+        name: string;
+        type: 'text' | 'textarea' | 'select' | 'checkbox';
+        required?: boolean | null;
+        /**
+         * Type each choice and press Enter.
+         */
+        options?: string[] | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
@@ -147,6 +272,41 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "guestlist".
+ */
+export interface Guestlist {
+  id: number;
+  event: number | Event;
+  person: number | Person;
+  status: 'invited' | 'registered' | 'cancelled';
+  source: 'guestlist' | 'shared-link' | 'manual';
+  registeredAt?: string | null;
+  /**
+   * Answers to the event's registration questions.
+   */
+  responses?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Personal registration link key. Generated automatically.
+   */
+  token?: string | null;
+  lastInviteStatus?:
+    ('queued' | 'sent' | 'delayed' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed') | null;
+  lastEmailStatus?:
+    ('queued' | 'sent' | 'delayed' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed') | null;
+  lastEmailAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -182,6 +342,50 @@ export interface Person {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "messages".
+ */
+export interface Message {
+  id: number;
+  event: number | Event;
+  subject: string;
+  /**
+   * Plain text. Variables: {{firstName}}, {{eventTitle}}, {{eventDate}}, {{venueName}}, {{registrationLink}}
+   */
+  body: string;
+  audience: 'all-guestlist' | 'not-yet-registered' | 'registered';
+  calendar: 'none' | 'invite' | 'update' | 'cancel';
+  status: 'draft' | 'sending' | 'sent' | 'partial';
+  /**
+   * Set to whoever creates the message. Emails go out from this address.
+   */
+  sender?: (number | null) | User;
+  sentAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * “Delivered” means the recipient's mail server accepted the email, not that it was read.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "deliveries".
+ */
+export interface Delivery {
+  id: number;
+  event: number | Event;
+  guestlistEntry?: (number | null) | Guestlist;
+  message?: (number | null) | Message;
+  toEmail: string;
+  kind: 'confirmation' | 'bulk' | 'invite' | 'update' | 'cancel';
+  status: 'queued' | 'sent' | 'delayed' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed';
+  providerMessageId?: string | null;
+  error?: string | null;
+  sentAt?: string | null;
+  statusUpdatedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -205,12 +409,32 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: number | User;
+        relationTo: 'events';
+        value: number | Event;
+      } | null)
+    | ({
+        relationTo: 'form-templates';
+        value: number | FormTemplate;
+      } | null)
+    | ({
+        relationTo: 'guestlist';
+        value: number | Guestlist;
+      } | null)
+    | ({
+        relationTo: 'messages';
+        value: number | Message;
+      } | null)
+    | ({
+        relationTo: 'deliveries';
+        value: number | Delivery;
       } | null)
     | ({
         relationTo: 'people';
         value: number | Person;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: number | User;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -256,6 +480,132 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events_select".
+ */
+export interface EventsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  status?: T;
+  startsAt?: T;
+  endsAt?: T;
+  venueName?: T;
+  mapUrl?: T;
+  venueAddress?: T;
+  description?: T;
+  openRegistration?: T;
+  capacity?: T;
+  registrationCloses?: T;
+  applyTemplate?: T;
+  extraFields?:
+    | T
+    | {
+        label?: T;
+        name?: T;
+        type?: T;
+        required?: T;
+        options?: T;
+        id?: T;
+      };
+  hostUser?: T;
+  replyToEmail?: T;
+  confirmationNote?: T;
+  calendarSequence?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form-templates_select".
+ */
+export interface FormTemplatesSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  extraFields?:
+    | T
+    | {
+        label?: T;
+        name?: T;
+        type?: T;
+        required?: T;
+        options?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "guestlist_select".
+ */
+export interface GuestlistSelect<T extends boolean = true> {
+  event?: T;
+  person?: T;
+  status?: T;
+  source?: T;
+  registeredAt?: T;
+  responses?: T;
+  token?: T;
+  lastInviteStatus?: T;
+  lastEmailStatus?: T;
+  lastEmailAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "messages_select".
+ */
+export interface MessagesSelect<T extends boolean = true> {
+  event?: T;
+  subject?: T;
+  body?: T;
+  audience?: T;
+  calendar?: T;
+  status?: T;
+  sender?: T;
+  sentAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "deliveries_select".
+ */
+export interface DeliveriesSelect<T extends boolean = true> {
+  event?: T;
+  guestlistEntry?: T;
+  message?: T;
+  toEmail?: T;
+  kind?: T;
+  status?: T;
+  providerMessageId?: T;
+  error?: T;
+  sentAt?: T;
+  statusUpdatedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "people_select".
+ */
+export interface PeopleSelect<T extends boolean = true> {
+  fullName?: T;
+  email?: T;
+  type?: T;
+  organisation?: T;
+  internalNotes?: T;
+  futureEventsConsent?: T;
+  marketingOptOut?: T;
+  emailSuppressed?: T;
+  suppressedReason?: T;
+  unsubscribeToken?: T;
+  createdVia?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -278,25 +628,6 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "people_select".
- */
-export interface PeopleSelect<T extends boolean = true> {
-  fullName?: T;
-  email?: T;
-  type?: T;
-  organisation?: T;
-  internalNotes?: T;
-  futureEventsConsent?: T;
-  marketingOptOut?: T;
-  emailSuppressed?: T;
-  suppressedReason?: T;
-  unsubscribeToken?: T;
-  createdVia?: T;
-  updatedAt?: T;
-  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

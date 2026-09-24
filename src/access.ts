@@ -26,6 +26,8 @@ const hasRole = (user: MaybeUser, ...roles: Role[]): boolean =>
 
 // Collection-level access
 
+export const nobody: Access = () => false;
+
 export const isSuperAdmin: Access = ({ req: { user } }) =>
   hasRole(user, "super-admin");
 
@@ -48,6 +50,14 @@ export const superAdminOrSelf: Access = ({ req: { user } }) => {
 
 export const superAdminField: FieldAccess = ({ req: { user } }) =>
   hasRole(user, "super-admin");
+
+// Written only by system code through the Local API (overrideAccess).
+export const systemOnlyField: FieldAccess = () => false;
+
+// Plain checks for server actions and admin components
+
+export const canManage = (user: MaybeUser): boolean =>
+  hasRole(user, "super-admin", "event-manager");
 
 // Admin UI visibility
 
