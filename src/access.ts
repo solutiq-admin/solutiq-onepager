@@ -59,6 +59,8 @@ export const systemOnlyField: FieldAccess = () => false;
 export const canManage = (user: MaybeUser): boolean =>
   hasRole(user, "super-admin", "event-manager");
 
+export const isSuperAdminUser = (user: MaybeUser): boolean => hasRole(user, "super-admin");
+
 // Bulk email goes out from the user's own address, so it must be ours.
 export const SENDER_DOMAIN = "@solutiq.africa";
 

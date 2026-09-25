@@ -76,3 +76,22 @@ export function skipReason(
   }
   return undefined;
 }
+
+// Delivery table (Phase F2).
+
+// Statuses the team follows up outside the admin.
+export const PROBLEM_STATUSES = ["bounced", "complained", "failed"] as const;
+
+export type StatusTone = "delivered" | "in-progress" | "problem" | "skipped";
+
+// Colour group for a status. `suppressed` means we chose not to send (opted
+// out, or already bounced), so it is neither in progress nor a new problem.
+export function statusTone(status: DeliveryStatus): StatusTone {
+  if (status === "delivered") return "delivered";
+  if (status === "suppressed") return "skipped";
+  if ((PROBLEM_STATUSES as readonly string[]).includes(status)) return "problem";
+  return "in-progress";
+}
+
+export const DELIVERED_MEANS =
+  "“Delivered” means the recipient's mail server accepted the email, not that it was read.";

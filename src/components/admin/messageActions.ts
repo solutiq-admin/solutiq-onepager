@@ -4,7 +4,7 @@ import config from "@payload-config";
 import { headers } from "next/headers";
 import { getPayload } from "payload";
 
-import { canSendEmail } from "@/access";
+import { canSendEmail, isSuperAdminUser } from "@/access";
 import {
   AUDIENCE_LABEL,
   composeMessageEmail,
@@ -173,6 +173,26 @@ export async function sendNextBatch(id: number | string, retryBefore?: string): 
   } catch (error) {
     console.error("Send batch failed", error);
     return { ok: false, message: "Sending stopped on an error. Use Continue to pick up where it left off." };
+  }
+}
+
+// "Resend to failed" (super-admin only): one batch of `failed` rows that
+// failed before `retryBefore`; queued rows are left for Continue. Emails go
+// out as the original sender, like the rest of the message.
+export async function resendFailedBatch(id: number | string, retryBefore: string): Promise<Progress | Failure> {
+  try {
+    const { payload, user, message } = await loadMessage(id);
+    if (!user || !message) return NOT_ALLOWED;
+    if (!isSuperAdminUser(user)) return { ok: false, message: "Only a super-admin can resend to failed recipients." };
+    if (message.status === "draft") return { ok: false, message: "This message hasn't been sent yet." };
+    if (Number.isNaN(Date.parse(retryBefore))) return { ok: false, message: "Couldn't start the resend. Please try again." };
+
+    const { claimed, counts } = await sendBatch(payload, message.id, user, retryBefore, true);
+    const settled = await payload.findByID({ collection: "messages", id: message.id, depth: 0 });
+    return { ok: true, status: settled.status, counts, claimed, serverTime: new Date().toISOString() };
+  } catch (error) {
+    console.error("Resend to failed batch failed", error);
+    return { ok: false, message: "Resending stopped on an error. Try Resend to failed again." };
   }
 }
 

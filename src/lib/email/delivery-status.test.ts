@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { allowedFrom, isHardBounce, isServiceMessage, kindFor, skipReason, statusForEvent } from "./delivery-status.ts";
+import { allowedFrom, isHardBounce, isServiceMessage, kindFor, skipReason, statusForEvent, statusTone } from "./delivery-status.ts";
 
 describe("allowedFrom", () => {
   it("moves forward only", () => {
@@ -98,5 +98,14 @@ describe("bulk sending rules", () => {
     assert.equal(kindFor("invite"), "invite");
     assert.equal(kindFor("update"), "update");
     assert.equal(kindFor("cancel"), "cancel");
+  });
+});
+
+describe("statusTone", () => {
+  it("groups every status into delivered, in progress, problem or skipped", () => {
+    assert.equal(statusTone("delivered"), "delivered");
+    for (const status of ["queued", "sent", "delayed"] as const) assert.equal(statusTone(status), "in-progress");
+    for (const status of ["bounced", "complained", "failed"] as const) assert.equal(statusTone(status), "problem");
+    assert.equal(statusTone("suppressed"), "skipped");
   });
 });

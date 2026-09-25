@@ -29,7 +29,11 @@ const deliverySummaryFields: Field[] = [
     options: deliveryStatusOptions,
     index: true,
     access: systemOnly,
-    admin: { readOnly: true, position: "sidebar" },
+    admin: {
+      readOnly: true,
+      position: "sidebar",
+      components: { Cell: "@/components/admin/DeliveryStatus#DeliveryStatusCell" },
+    },
   },
   {
     name: "lastEmailStatus",
@@ -37,7 +41,11 @@ const deliverySummaryFields: Field[] = [
     options: deliveryStatusOptions,
     index: true,
     access: systemOnly,
-    admin: { readOnly: true, position: "sidebar" },
+    admin: {
+      readOnly: true,
+      position: "sidebar",
+      components: { Cell: "@/components/admin/DeliveryStatus#DeliveryStatusCell" },
+    },
   },
   {
     name: "lastEmailAt",
@@ -70,6 +78,9 @@ export const Guestlist: CollectionConfig = {
       "lastEmailAt",
     ],
     group: "Events",
+    components: {
+      beforeListTable: ["@/components/admin/GuestlistFollowUp#GuestlistFollowUp"],
+    },
   },
   defaultSort: "-createdAt",
   indexes: [{ fields: ["event", "person"], unique: true }],
@@ -188,5 +199,16 @@ export const Guestlist: CollectionConfig = {
       },
     },
     ...deliverySummaryFields,
+    {
+      name: "deliveryHistory",
+      type: "ui",
+      admin: {
+        condition: (data) => Boolean(data?.id),
+        disableListColumn: true,
+        components: {
+          Field: "@/components/admin/DeliveryHistory#DeliveryHistory",
+        },
+      },
+    },
   ],
 };

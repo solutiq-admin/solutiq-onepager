@@ -1,6 +1,7 @@
 import type { CollectionConfig } from "payload";
 
 import { isAnyRole, nobody } from "../access";
+import { DELIVERED_MEANS } from "../lib/email/delivery-status";
 import { deliveryStatusOptions } from "./Guestlist";
 
 // One row per email sent. Written only by system code through the Local API
@@ -15,7 +16,7 @@ export const Deliveries: CollectionConfig = {
     useAsTitle: "toEmail",
     defaultColumns: ["toEmail", "event", "kind", "status", "sentAt", "statusUpdatedAt"],
     group: "Events",
-    description: "“Delivered” means the recipient's mail server accepted the email, not that it was read.",
+    description: DELIVERED_MEANS,
   },
   defaultSort: "-createdAt",
   access: {

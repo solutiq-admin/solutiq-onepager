@@ -26,6 +26,9 @@ import { SaveAsTemplate as SaveAsTemplate_716658c7dd735c0e7d37637e0da1936e } fro
 import { QuickAdd as QuickAdd_4158a0e3c54b85a5ff9dcc38f427a890 } from '@/components/admin/QuickAdd'
 import { QuestionCountCell as QuestionCountCell_b9cdf4e3b91b6c0abdf7f1b5d771588c } from '@/components/admin/QuestionCountCell'
 import { PersonEmailCell as PersonEmailCell_2f7cf9b2c71bbde8ab85792421198a17 } from '@/components/admin/PersonEmailCell'
+import { DeliveryStatusCell as DeliveryStatusCell_dcd2aeb9a6409445519482b6a48eb197 } from '@/components/admin/DeliveryStatus'
+import { DeliveryHistory as DeliveryHistory_9f43fa6e3b8d0723e1f9e668c42a5543 } from '@/components/admin/DeliveryHistory'
+import { GuestlistFollowUp as GuestlistFollowUp_4d23ce17d531a7645209fa2fc865956f } from '@/components/admin/GuestlistFollowUp'
 import { MessageSend as MessageSend_bc4f6638b3e01ac8e9b82aa527963368 } from '@/components/admin/MessageSend'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
@@ -59,6 +62,9 @@ export const importMap = {
   "@/components/admin/QuickAdd#QuickAdd": QuickAdd_4158a0e3c54b85a5ff9dcc38f427a890,
   "@/components/admin/QuestionCountCell#QuestionCountCell": QuestionCountCell_b9cdf4e3b91b6c0abdf7f1b5d771588c,
   "@/components/admin/PersonEmailCell#PersonEmailCell": PersonEmailCell_2f7cf9b2c71bbde8ab85792421198a17,
+  "@/components/admin/DeliveryStatus#DeliveryStatusCell": DeliveryStatusCell_dcd2aeb9a6409445519482b6a48eb197,
+  "@/components/admin/DeliveryHistory#DeliveryHistory": DeliveryHistory_9f43fa6e3b8d0723e1f9e668c42a5543,
+  "@/components/admin/GuestlistFollowUp#GuestlistFollowUp": GuestlistFollowUp_4d23ce17d531a7645209fa2fc865956f,
   "@/components/admin/MessageSend#MessageSend": MessageSend_bc4f6638b3e01ac8e9b82aa527963368,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

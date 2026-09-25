@@ -4,11 +4,12 @@ import { Button, toast, useAuth, useDocumentInfo, useFormModified } from "@paylo
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
-import { canSendEmail } from "@/access";
+import { canSendEmail, isSuperAdminUser } from "@/access";
 
 import {
   getSendProgress,
   previewSend,
+  resendFailedBatch,
   sendNextBatch,
   sendTestMessage,
   startSend,
@@ -33,7 +34,8 @@ const summary = ({ counts }: Progress) =>
     .filter(Boolean)
     .join(" · ");
 
-// Message edit view: test, send (after a confirmation step) and continue.
+// Message edit view: test, send (after a confirmation step), continue, and
+// for super-admins, resend to failed.
 // Sending runs as repeated small server-action calls, one batch each, so it
 // fits serverless time limits; closing the tab just pauses it.
 export function MessageSend() {
@@ -81,9 +83,10 @@ export function MessageSend() {
   };
 
   // Starts (or resumes) a run, then calls batches until nothing more can be
-  // claimed. In retry mode, rows that failed before the run started are
-  // tried once more. Not a transition, so progress renders as it happens.
-  const run = async (begin: () => ReturnType<typeof getSendProgress>, retry: boolean) => {
+  // claimed. In retry modes, rows that failed before the run started are
+  // tried once more; "failed" mode sends only those. Not a transition, so
+  // progress renders as it happens.
+  const run = async (begin: () => ReturnType<typeof getSendProgress>, mode: "send" | "retry" | "failed") => {
     setRunning(true);
     setNotice(null);
     stopRef.current = false;
@@ -96,9 +99,9 @@ export function MessageSend() {
       }
       latest = first;
       setProgress(first);
-      const retryBefore = retry ? first.serverTime : undefined;
+      const retryBefore = mode === "send" ? undefined : first.serverTime;
       while (!stopRef.current) {
-        const res = await sendNextBatch(id, retryBefore);
+        const res = mode === "failed" ? await resendFailedBatch(id, first.serverTime) : await sendNextBatch(id, retryBefore);
         if (!res.ok) {
           toast.error(res.message);
           break;
@@ -116,7 +119,7 @@ export function MessageSend() {
 
     if (!latest) return;
     const { queued, failed } = latest.counts;
-    if (stopRef.current) setNotice("Paused. Use Continue to send the rest.");
+    if (stopRef.current) setNotice(mode === "failed" ? "Paused." : "Paused. Use Continue to send the rest.");
     else if (queued > 0) {
       setNotice(
         "Some emails are still queued: another window may be sending them, or a send was interrupted. Try Continue again in five minutes.",
@@ -128,14 +131,21 @@ export function MessageSend() {
 
   const confirmSend = () => {
     setPreview(null);
-    void run(() => startSend(id), false);
+    void run(() => startSend(id), "send");
   };
 
-  const continueSend = () => void run(() => getSendProgress(id), true);
+  const continueSend = () => void run(() => getSendProgress(id), "retry");
+
+  const resendFailed = () => {
+    const failed = progress?.counts.failed ?? 0;
+    if (!window.confirm(`Resend this message to the ${failed} ${failed === 1 ? "recipient" : "recipients"} it failed for?`)) return;
+    void run(() => getSendProgress(id), "failed");
+  };
 
   const status = progress?.status ?? "draft";
   const counts = progress?.counts;
   const canContinue = status !== "draft" && Boolean(counts && (counts.queued > 0 || counts.failed > 0));
+  const canResendFailed = status !== "draft" && isSuperAdminUser(user) && Boolean(counts && counts.failed > 0);
 
   return (
     <div className="field-type" style={{ marginTop: "var(--base)" }}>
@@ -203,6 +213,11 @@ export function MessageSend() {
         {canContinue && !running && (
           <Button buttonStyle="primary" size="medium" disabled={busy} onClick={continueSend}>
             Continue / retry unsent
+          </Button>
+        )}
+        {canResendFailed && !running && (
+          <Button buttonStyle="secondary" size="medium" disabled={busy} onClick={resendFailed}>
+            Resend to failed
           </Button>
         )}
         {running && (

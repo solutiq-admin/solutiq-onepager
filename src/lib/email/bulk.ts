@@ -200,8 +200,14 @@ export async function queueMessage(payload: Payload, message: Message, senderId:
 // sending the same message never pick the same row. Claimed rows get a fresh
 // statusUpdatedAt; unclaimed queued rows have none (or a stale one).
 // `retryBefore` also picks up rows that failed before that moment, so a
-// retry run tries each failed row once instead of looping on it.
-async function claimBatch(payload: Payload, messageId: number, retryBefore?: string): Promise<number[]> {
+// retry run tries each failed row once instead of looping on it. With
+// `onlyFailed` ("Resend to failed"), queued rows are left alone.
+async function claimBatch(
+  payload: Payload,
+  messageId: number,
+  retryBefore?: string,
+  onlyFailed = false,
+): Promise<number[]> {
   const now = new Date();
   const stale = new Date(now.getTime() - CLAIM_TIMEOUT_MS).toISOString();
   const db = (payload.db as unknown as PostgresAdapter).drizzle;
@@ -212,7 +218,8 @@ async function claimBatch(payload: Payload, messageId: number, retryBefore?: str
       SELECT "id" FROM "payload"."deliveries"
       WHERE "message_id" = ${messageId}
         AND (
-          ("status" = 'queued' AND ("status_updated_at" IS NULL OR "status_updated_at" < ${stale}))
+          (NOT ${onlyFailed}::boolean AND "status" = 'queued'
+              AND ("status_updated_at" IS NULL OR "status_updated_at" < ${stale}))
           OR ("status" = 'failed' AND ${retryBefore ?? null}::timestamptz IS NOT NULL
               AND "status_updated_at" < ${retryBefore ?? null}::timestamptz)
         )
@@ -250,8 +257,14 @@ export async function messageCounts(payload: Payload, messageId: number): Promis
 
 // Sends one batch, then settles the Message status: `sent` once nothing is
 // queued, `partial` if anything failed.
-export async function sendBatch(payload: Payload, messageId: number, fallbackSender: Sender, retryBefore?: string) {
-  const ids = await claimBatch(payload, messageId, retryBefore);
+export async function sendBatch(
+  payload: Payload,
+  messageId: number,
+  fallbackSender: Sender,
+  retryBefore?: string,
+  onlyFailed = false,
+) {
+  const ids = await claimBatch(payload, messageId, retryBefore, onlyFailed);
 
   if (ids.length > 0) {
     const message = await payload.findByID({ collection: "messages", id: messageId, depth: 1 });
