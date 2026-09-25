@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-// Minimal frame for the public event pages. The one-pager's Nav and Footer
+// Minimal frame for the public event pages (and /unsubscribe). The one-pager's Nav and Footer
 // link to same-page anchors, so they don't fit here.
 export default function EventsLayout({ children }: { children: ReactNode }) {
   return (

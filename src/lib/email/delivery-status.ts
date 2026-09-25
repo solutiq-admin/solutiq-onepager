@@ -49,3 +49,30 @@ export const isHardBounce = (bounceType: string | undefined) =>
 
 // Deliveries that carry a calendar attachment. The confirmation always does.
 export const INVITE_KINDS = ["confirmation", "invite", "update", "cancel"] as const;
+
+// Bulk sending rules (Phase F1).
+
+type Calendar = "none" | "invite" | "update" | "cancel";
+type EntryStatus = "invited" | "registered" | "cancelled";
+
+// Deliveries.kind for a message: its calendar option, or plain `bulk`.
+export const kindFor = (calendar: Calendar) => (calendar === "none" ? "bulk" : calendar);
+
+// Updates and cancellations to people who registered are service messages:
+// they go out even to people who unsubscribed, and carry no unsubscribe link.
+export const isServiceMessage = (calendar: Calendar, entryStatus: EntryStatus) =>
+  (calendar === "update" || calendar === "cancel") && entryStatus === "registered";
+
+// Why a recipient is skipped (the Delivery becomes `suppressed` with this as
+// its error), or undefined to send. A bounce or complaint always wins.
+export function skipReason(
+  person: { emailSuppressed?: boolean | null; suppressedReason?: string | null; marketingOptOut?: boolean | null },
+  calendar: Calendar,
+  entryStatus: EntryStatus,
+): string | undefined {
+  if (person.emailSuppressed) return `Not sent: address suppressed (${person.suppressedReason ?? "unknown"})`;
+  if (person.marketingOptOut && !isServiceMessage(calendar, entryStatus)) {
+    return "Not sent: unsubscribed from SOLUTIQ event emails";
+  }
+  return undefined;
+}

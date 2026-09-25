@@ -1,10 +1,19 @@
 import type { CollectionConfig } from "payload";
+import { ValidationError } from "payload";
 
 import { isManager, isSuperAdmin, systemOnlyField } from "../access";
 
 const systemOnly = { create: systemOnlyField, update: systemOnlyField };
 
-// A bulk email to an event's guestlist. Sending is built in Phase F1.
+// Once sending starts, these are frozen: Continue must send the same email
+// to the rest of the guestlist that the first recipients got.
+const CONTENT_FIELDS = ["event", "subject", "body", "audience", "calendar"] as const;
+
+const idOrValue = (value: unknown) =>
+  typeof value === "object" && value !== null && "id" in value ? (value as { id: unknown }).id : value;
+
+// A bulk email to an event's guestlist. Sent from the Message edit view
+// (components/admin/MessageSend.tsx); see lib/email/bulk.ts.
 export const Messages: CollectionConfig = {
   slug: "messages",
   admin: {
@@ -24,6 +33,22 @@ export const Messages: CollectionConfig = {
       // The sender is always the logged-in user who created the message.
       ({ data, operation, req }) => {
         if (operation === "create" && req.user) data.sender = req.user.id;
+        return data;
+      },
+      ({ data, operation, originalDoc }) => {
+        if (operation !== "update" || !originalDoc || originalDoc.status === "draft") return data;
+        const changed = CONTENT_FIELDS.filter(
+          (field) => field in data && idOrValue(data[field]) !== idOrValue(originalDoc[field]),
+        );
+        if (changed.length > 0) {
+          throw new ValidationError({
+            collection: "messages",
+            errors: changed.map((path) => ({
+              path,
+              message: "This message has been sent and can't be changed. Create a new message instead.",
+            })),
+          });
+        }
         return data;
       },
     ],
@@ -83,6 +108,17 @@ export const Messages: CollectionConfig = {
       ],
     },
     {
+      name: "sendPanel",
+      type: "ui",
+      admin: {
+        condition: (data) => Boolean(data?.id),
+        disableListColumn: true,
+        components: {
+          Field: "@/components/admin/MessageSend#MessageSend",
+        },
+      },
+    },
+    {
       name: "status",
       type: "select",
       required: true,
@@ -105,7 +141,7 @@ export const Messages: CollectionConfig = {
       admin: {
         readOnly: true,
         position: "sidebar",
-        description: "Set to whoever creates the message. Emails go out from this address.",
+        description: "Whoever pressed Send. Emails go out from this address.",
       },
     },
     {

@@ -54,9 +54,10 @@ export const Deliveries: CollectionConfig = {
     { name: "sentAt", type: "date" },
     { name: "statusUpdatedAt", type: "date" },
     {
-      // "confirmation:<guestlist entry id>" on automatic confirmations, empty
-      // otherwise. The unique index lets the database refuse a second
-      // confirmation for the same person and event, even under a race.
+      // "confirmation:<guestlist entry id>" on automatic confirmations,
+      // "message:<message id>:<guestlist entry id>" on bulk messages. The
+      // unique index lets the database refuse a second confirmation, or a
+      // second copy of a message, for the same person, even under a race.
       name: "dedupeKey",
       type: "text",
       unique: true,

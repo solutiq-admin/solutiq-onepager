@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { allowedFrom, isHardBounce, statusForEvent } from "./delivery-status.ts";
+import { allowedFrom, isHardBounce, isServiceMessage, kindFor, skipReason, statusForEvent } from "./delivery-status.ts";
 
 describe("allowedFrom", () => {
   it("moves forward only", () => {
@@ -58,5 +58,45 @@ describe("isHardBounce", () => {
     assert.equal(isHardBounce("Transient"), false);
     assert.equal(isHardBounce("Undetermined"), false);
     assert.equal(isHardBounce(undefined), false);
+  });
+});
+
+describe("bulk sending rules", () => {
+  const person = { emailSuppressed: false, suppressedReason: null, marketingOptOut: false };
+
+  it("sends to people with no flags", () => {
+    for (const calendar of ["none", "invite", "update", "cancel"] as const) {
+      assert.equal(skipReason(person, calendar, "invited"), undefined);
+    }
+  });
+
+  it("always skips suppressed addresses, even for service messages", () => {
+    const bounced = { ...person, emailSuppressed: true, suppressedReason: "bounced" };
+    assert.match(skipReason(bounced, "cancel", "registered") ?? "", /suppressed \(bounced\)/);
+    assert.match(skipReason(bounced, "none", "invited") ?? "", /suppressed/);
+  });
+
+  it("skips opted-out people except for updates and cancels to registered guests", () => {
+    const optedOut = { ...person, marketingOptOut: true };
+    assert.equal(skipReason(optedOut, "update", "registered"), undefined);
+    assert.equal(skipReason(optedOut, "cancel", "registered"), undefined);
+    assert.ok(skipReason(optedOut, "update", "invited"));
+    assert.ok(skipReason(optedOut, "invite", "registered"));
+    assert.ok(skipReason(optedOut, "none", "registered"));
+  });
+
+  it("treats only update/cancel to registered guests as service messages", () => {
+    assert.equal(isServiceMessage("update", "registered"), true);
+    assert.equal(isServiceMessage("cancel", "registered"), true);
+    assert.equal(isServiceMessage("cancel", "invited"), false);
+    assert.equal(isServiceMessage("invite", "registered"), false);
+    assert.equal(isServiceMessage("none", "registered"), false);
+  });
+
+  it("maps the calendar option to the delivery kind", () => {
+    assert.equal(kindFor("none"), "bulk");
+    assert.equal(kindFor("invite"), "invite");
+    assert.equal(kindFor("update"), "update");
+    assert.equal(kindFor("cancel"), "cancel");
   });
 });

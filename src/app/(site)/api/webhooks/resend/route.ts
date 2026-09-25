@@ -1,10 +1,10 @@
 import config from "@payload-config";
 import { sql, type PostgresAdapter } from "@payloadcms/db-postgres";
-import { getPayload, type Payload, type Where } from "payload";
+import { getPayload, type Payload } from "payload";
 import { Resend, type WebhookEventPayload } from "resend";
 
-import { allowedFrom, INVITE_KINDS, isHardBounce, statusForEvent } from "@/lib/email/delivery-status";
-import type { Delivery } from "@/payload-types";
+import { allowedFrom, isHardBounce, statusForEvent } from "@/lib/email/delivery-status";
+import { refreshGuestlistEntry } from "@/lib/email/guestlist-summary";
 
 // Resend delivery webhook. Verifies the signature with the SDK, moves the
 // matching Delivery forward (see lib/email/delivery-status.ts), suppresses the
@@ -125,36 +125,5 @@ async function suppressPerson(payload: Payload, email: string, reason: "bounced"
     collection: "people",
     id: person.id,
     data: { emailSuppressed: true, suppressedReason: reason },
-  });
-}
-
-// Recomputed from the Deliveries rather than copied from this one event, so
-// the summary always reflects the newest email, whatever order events land in.
-async function refreshGuestlistEntry(payload: Payload, entryId: number) {
-  const latest = (extra: Where = {}) =>
-    payload
-      .find({
-        collection: "deliveries",
-        where: { and: [{ guestlistEntry: { equals: entryId } }, extra] },
-        sort: "-createdAt",
-        limit: 1,
-        depth: 0,
-        pagination: false,
-      })
-      .then(({ docs }) => docs[0] as Delivery | undefined);
-
-  const [lastEmail, lastInvite] = await Promise.all([
-    latest(),
-    latest({ kind: { in: [...INVITE_KINDS] } }),
-  ]);
-
-  await payload.update({
-    collection: "guestlist",
-    id: entryId,
-    data: {
-      lastEmailStatus: lastEmail?.status ?? null,
-      lastInviteStatus: lastInvite?.status ?? null,
-      lastEmailAt: lastEmail ? (lastEmail.sentAt ?? lastEmail.createdAt) : null,
-    },
   });
 }

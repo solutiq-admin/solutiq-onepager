@@ -4,6 +4,10 @@ import { generatePageMetadata, RootPage } from "@payloadcms/next/views";
 
 import { importMap } from "../importMap";
 
+// Server actions run under this page, including the bulk-send batches
+// (10 emails, paced for Resend's rate limit, ~6-10 s each).
+export const maxDuration = 60;
+
 type Args = {
   params: Promise<{
     segments: string[];

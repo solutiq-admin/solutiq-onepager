@@ -15,7 +15,7 @@ export type Role = (typeof ROLES)[number];
 
 // Loose on purpose: access functions get a User, the admin UI a ClientUser.
 type MaybeUser =
-  | { id?: number | string; collection?: string; role?: unknown }
+  | { id?: number | string; collection?: string; role?: unknown; email?: unknown }
   | null
   | undefined;
 
@@ -58,6 +58,14 @@ export const systemOnlyField: FieldAccess = () => false;
 
 export const canManage = (user: MaybeUser): boolean =>
   hasRole(user, "super-admin", "event-manager");
+
+// Bulk email goes out from the user's own address, so it must be ours.
+export const SENDER_DOMAIN = "@solutiq.africa";
+
+export const canSendEmail = (user: MaybeUser): boolean =>
+  canManage(user) &&
+  typeof user?.email === "string" &&
+  user.email.toLowerCase().trim().endsWith(SENDER_DOMAIN);
 
 // Admin UI visibility
 

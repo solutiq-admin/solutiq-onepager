@@ -13,6 +13,7 @@ export type SendInput = {
   html: string;
   text: string;
   ics?: { content: string; method: IcsMethod };
+  headers?: Record<string, string>;
   // Resend drops a repeat with the same key for 24 hours, so a retry can
   // never send twice.
   idempotencyKey?: string;
@@ -50,6 +51,7 @@ export async function sendEmail(input: SendInput): Promise<SendResult> {
           html: input.html,
           text: input.text,
           attachments,
+          headers: input.headers,
         },
         input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined,
       );

@@ -361,7 +361,7 @@ export interface Message {
   calendar: 'none' | 'invite' | 'update' | 'cancel';
   status: 'draft' | 'sending' | 'sent' | 'partial';
   /**
-   * Set to whoever creates the message. Emails go out from this address.
+   * Whoever pressed Send. Emails go out from this address.
    */
   sender?: (number | null) | User;
   sentAt?: string | null;

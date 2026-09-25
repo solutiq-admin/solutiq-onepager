@@ -5,11 +5,10 @@ import {
   hiddenUnlessSuperAdmin,
   isSuperAdmin,
   ROLES,
+  SENDER_DOMAIN as EMAIL_DOMAIN,
   superAdminField,
   superAdminOrSelf,
 } from "../access";
-
-const EMAIL_DOMAIN = "@solutiq.africa";
 
 export const Users: CollectionConfig = {
   slug: "users",
