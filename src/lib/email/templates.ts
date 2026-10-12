@@ -1,7 +1,10 @@
+import { LOGO_CID } from "./logo.ts"; // extension: node --test loads this file directly
+
 // Email renderers: HTML plus a plain-text version, always both.
 // White canvas, black header band with the white logo, navy rule, gold only
 // as a thin accent. Tables and inline styles, because that is what email
-// clients render reliably. The logo is a PNG: Gmail and Outlook drop SVG.
+// clients render reliably. The logo is a PNG (Gmail and Outlook drop SVG),
+// sent inline with every email by send.ts and referenced by content ID.
 //
 // DRAFT: the wording below is functional, not signed-off brand copy.
 
@@ -39,13 +42,12 @@ export type ConfirmationContent = {
   mapUrl?: string | null;
   eventUrl: string;
   note?: string | null;
-  siteUrl: string;
 };
 
 export type RenderedEmail = { subject: string; html: string; text: string };
 
 export function renderConfirmation(content: ConfirmationContent): RenderedEmail {
-  const { firstName, title, when, venueName, venueAddress, eventUrl, siteUrl } = content;
+  const { firstName, title, when, venueName, venueAddress, eventUrl } = content;
   const mapUrl = isHttpUrl(content.mapUrl) ? content.mapUrl : undefined;
   const note = content.note?.trim();
   const greeting = firstName ? `Hi ${firstName},` : "Hello,";
@@ -71,7 +73,8 @@ export function renderConfirmation(content: ConfirmationContent): RenderedEmail 
     questions,
     "",
     "--",
-    "SOLUTIQ · Technology · Talent · Partnership",
+    "SOLUTIQ",
+    "Technology · Talent · Partnership",
     "solutiq.africa",
   ]
     .filter((line) => line !== undefined)
@@ -100,7 +103,6 @@ export function renderConfirmation(content: ConfirmationContent): RenderedEmail 
 <p style="margin:0 0 28px 0;">${link(eventUrl, "View event details")}</p>
 ${note ? `<p style="margin:0 0 28px 0;">${multiline(note)}</p>` : ""}
 <p style="margin:0;">${escapeHtml(questions)}</p>`,
-    siteUrl,
   });
 
   return { subject, html, text };
@@ -112,10 +114,9 @@ function frame(parts: {
   subject: string;
   preheader: string;
   content: string;
-  siteUrl: string;
   footer?: string;
 }): string {
-  const { subject, preheader, content, siteUrl, footer } = parts;
+  const { subject, preheader, content, footer } = parts;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -123,6 +124,7 @@ function frame(parts: {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@700&display=swap" rel="stylesheet">
 <title>${escapeHtml(subject)}</title>
 </head>
 <body style="margin:0;padding:0;background-color:${WHITE};">
@@ -131,7 +133,10 @@ function frame(parts: {
 <tr><td align="center" style="padding:0;">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
 <tr><td style="background-color:${BLACK};padding:24px 32px;">
-<img src="${escapeHtml(`${siteUrl}/assets/solutiq-logo-white-email.png`)}" width="42" height="32" alt="SOLUTIQ" style="display:block;border:0;outline:none;color:${WHITE};font-family:${HEADING_FONT};font-size:16px;font-weight:700;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td style="vertical-align:middle;"><img src="cid:${LOGO_CID}" width="42" height="32" alt="" style="display:block;border:0;outline:none;"></td>
+<td style="vertical-align:middle;padding-left:13px;font-family:${HEADING_FONT};font-size:18px;line-height:32px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:${WHITE};mso-line-height-rule:exactly;">SOLUTIQ</td>
+</tr></table>
 </td></tr>
 <tr><td style="background-color:${NAVY};height:4px;line-height:4px;font-size:0;">&nbsp;</td></tr>
 <tr><td style="padding:40px 32px 32px 32px;font-family:${BODY_FONT};font-size:16px;line-height:1.6;color:${BLACK};">
@@ -139,7 +144,8 @@ function frame(parts: {
 ${content}
 </td></tr>
 <tr><td style="padding:24px 32px 40px 32px;border-top:1px solid #E4E2E1;font-family:${BODY_FONT};font-size:13px;line-height:1.6;color:${MUTED};">
-SOLUTIQ · Technology · Talent · Partnership<br>
+SOLUTIQ<br>
+Technology · Talent · Partnership<br>
 <a href="https://solutiq.africa" style="color:${MUTED};text-decoration:none;">solutiq.africa</a>${footer ?? ""}
 </td></tr>
 </table>
@@ -182,13 +188,12 @@ export type MessageContent = {
   subject: string; // variables already filled
   body: string; // variables already filled
   title: string;
-  siteUrl: string;
   // Present on marketing (non-service) emails only.
   unsubscribeUrl?: string;
 };
 
 export function renderMessage(content: MessageContent): RenderedEmail {
-  const { subject, title, siteUrl, unsubscribeUrl } = content;
+  const { subject, title, unsubscribeUrl } = content;
   const body = content.body.replace(/\r\n?/g, "\n").trim();
   const unsubscribe = "Don't want SOLUTIQ event invitations?";
 
@@ -196,7 +201,8 @@ export function renderMessage(content: MessageContent): RenderedEmail {
     body,
     "",
     "--",
-    "SOLUTIQ · Technology · Talent · Partnership",
+    "SOLUTIQ",
+    "Technology · Talent · Partnership",
     "solutiq.africa",
     ...(unsubscribeUrl ? ["", `${unsubscribe} Unsubscribe: ${unsubscribeUrl}`] : []),
   ].join("\n");
@@ -211,7 +217,6 @@ export function renderMessage(content: MessageContent): RenderedEmail {
     preheader: body.split("\n")[0] ?? title,
     content: `<h1 style="margin:20px 0 24px 0;font-family:${HEADING_FONT};font-size:26px;line-height:1.25;font-weight:700;color:${BLACK};">${escapeHtml(title)}</h1>
 ${paragraphs}`,
-    siteUrl,
     footer: unsubscribeUrl
       ? `<br><br>${escapeHtml(unsubscribe)} <a href="${escapeHtml(unsubscribeUrl)}" style="color:${MUTED};text-decoration:underline;">Unsubscribe</a>`
       : undefined,

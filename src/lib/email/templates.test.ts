@@ -22,7 +22,13 @@ describe("fillVariables", () => {
 });
 
 describe("renderMessage", () => {
-  const base = { subject: "Join us", title: "Builders' Breakfast", siteUrl: "https://solutiq.africa" };
+  const base = { subject: "Join us", title: "Builders' Breakfast" };
+
+  it("shows the logo from the inline attachment, never a hosted URL", () => {
+    const { html } = renderMessage({ ...base, body: "Hello" });
+    assert.match(html, /<img src="cid:solutiq-logo"/);
+    assert.match(html, />SOLUTIQ<\/td>/);
+  });
 
   it("escapes the body and links URLs without trailing punctuation", () => {
     const { html, text } = renderMessage({ ...base, body: `Register <here>: ${vars.registrationLink}.` });

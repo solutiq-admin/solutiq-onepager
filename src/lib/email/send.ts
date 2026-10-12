@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 
 import type { IcsMethod } from "./ics";
+import { LOGO_CID, LOGO_PNG_BASE64 } from "./logo";
 
 // The one place event email goes out through Resend. One recipient per call,
 // never a list. Callers record the result on a Delivery row.
@@ -32,12 +33,18 @@ export async function sendEmail(input: SendInput): Promise<SendResult> {
   if (!apiKey) return { ok: false, error: "RESEND_API_KEY is not set" };
   client ??= new Resend(apiKey);
 
-  const attachments = input.ics && [
-    {
-      filename: "invite.ics",
-      content: Buffer.from(input.ics.content, "utf8"),
-      contentType: `text/calendar; charset=utf-8; method=${input.ics.method}`,
-    },
+  // Every template shows the logo as cid:LOGO_CID, so it always goes inline.
+  const attachments = [
+    { filename: "solutiq-logo.png", content: LOGO_PNG_BASE64, contentType: "image/png", contentId: LOGO_CID },
+    ...(input.ics
+      ? [
+          {
+            filename: "invite.ics",
+            content: Buffer.from(input.ics.content, "utf8"),
+            contentType: `text/calendar; charset=utf-8; method=${input.ics.method}`,
+          },
+        ]
+      : []),
   ];
 
   for (let attempt = 0; ; attempt++) {

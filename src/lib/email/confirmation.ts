@@ -79,7 +79,6 @@ export async function sendConfirmation(guestlistEntryId: number): Promise<void> 
       mapUrl: event.mapUrl,
       eventUrl,
       note: event.confirmationNote,
-      siteUrl,
     });
 
     const ics = buildIcs({
