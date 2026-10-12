@@ -3,10 +3,12 @@ import type { Metadata } from "next";
 import { getPayload } from "payload";
 
 import { EventDetails, EventNotice } from "@/components/events/EventDetails";
-import { RegistrationForm } from "@/components/events/RegistrationForm";
+import { type GuestDefaults, RegistrationForm } from "@/components/events/RegistrationForm";
 import type { Question } from "@/fields/questions";
 import { EVENT_COPY } from "@/lib/events/copy";
 import { getPublicEvent, registrationState } from "@/lib/events/event";
+import { getFormOptions } from "@/lib/events/form-options";
+import type { Person } from "@/payload-types";
 
 // Personal link. Rendered per request and never indexed. Referrer-Policy and
 // X-Robots-Tag headers for this path are set in next.config.ts.
@@ -32,7 +34,18 @@ export default async function PersonalEventPage({ params }: Props) {
           where: { token: { equals: token }, event: { equals: event.id } },
           limit: 1,
           depth: 1,
-          populate: { people: { fullName: true, email: true } },
+          populate: {
+            people: {
+              fullName: true,
+              email: true,
+              salutationOption: true,
+              firstName: true,
+              lastName: true,
+              jobTitle: true,
+              organisation: true,
+              industryOption: true,
+            },
+          },
           select: { person: true, status: true },
         })
       ).docs[0]
@@ -60,11 +73,30 @@ export default async function PersonalEventPage({ params }: Props) {
       <RegistrationForm
         slug={event.slug}
         token={token}
-        guest={{ fullName: person.fullName, email: person.email }}
+        guest={guestDefaults(person)}
         questions={(event.extraFields ?? []) as Question[]}
+        options={await getFormOptions()}
         askPhotoConsent={Boolean(event.askPhotoConsent)}
       />
     );
 
   return <EventDetails event={event}>{panel}</EventDetails>;
+}
+
+const idOf = (value: number | { id: number } | null | undefined) =>
+  typeof value === "object" && value !== null ? value.id : value;
+
+// Prefill from People. Guests invited before first and last name existed
+// only have fullName: split it at the first space for them to correct.
+function guestDefaults(person: Person): GuestDefaults {
+  const [first, ...rest] = person.fullName.trim().split(/\s+/);
+  return {
+    email: person.email,
+    salutation: idOf(person.salutationOption),
+    firstName: person.firstName || first,
+    lastName: person.lastName || rest.join(" "),
+    jobTitle: person.jobTitle,
+    organisation: person.organisation,
+    industry: idOf(person.industryOption),
+  };
 }

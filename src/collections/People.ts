@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { CollectionConfig } from "payload";
 
 import { isAnyRole, isManager, isSuperAdmin, superAdminField } from "../access";
+import { optionFields } from "../fields/formOptions";
 
 // Read-only for everyone except super-admin. The webhook and unsubscribe
 // code write these through the Local API, which bypasses access.
@@ -27,11 +28,38 @@ export const People: CollectionConfig = {
     update: isManager,
     delete: isSuperAdmin, // POPIA erasure requests
   },
+  hooks: {
+    beforeValidate: [
+      ({ data }) => {
+        if (data && !data.fullName?.trim()) {
+          const name = [data.firstName, data.lastName].filter(Boolean).join(" ").trim();
+          if (name) data.fullName = name;
+        }
+        return data;
+      },
+    ],
+  },
   fields: [
     {
       name: "fullName",
       type: "text",
       required: true,
+      admin: {
+        description: "Used in emails. Filled from first and last name if left empty.",
+      },
+    },
+    optionFields({
+      list: "salutation",
+      relationName: "salutationOption",
+      labelName: "salutation",
+      label: "Salutation",
+    }),
+    {
+      type: "row",
+      fields: [
+        { name: "firstName", type: "text", admin: { width: "50%" } },
+        { name: "lastName", type: "text", admin: { width: "50%" } },
+      ],
     },
     {
       name: "email",
@@ -57,9 +85,18 @@ export const People: CollectionConfig = {
       ],
     },
     {
-      name: "organisation",
-      type: "text",
+      type: "row",
+      fields: [
+        { name: "jobTitle", type: "text", admin: { width: "50%" } },
+        { name: "organisation", type: "text", admin: { width: "50%" } },
+      ],
     },
+    optionFields({
+      list: "industry",
+      relationName: "industryOption",
+      labelName: "industry",
+      label: "Industry",
+    }),
     {
       name: "internalNotes",
       type: "textarea",

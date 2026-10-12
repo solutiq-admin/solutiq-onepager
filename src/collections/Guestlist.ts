@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { CollectionConfig, Field } from "payload";
 
 import { isAnyRole, isManager, systemOnlyField } from "../access";
+import { optionFields } from "../fields/formOptions";
 
 const DELIVERY_STATUSES = [
   "queued",
@@ -153,6 +154,49 @@ export const Guestlist: CollectionConfig = {
       admin: {
         date: { pickerAppearance: "dayAndTime", displayFormat: "d MMM yyyy, HH:mm" },
       },
+    },
+    {
+      type: "collapsible",
+      label: "Registration details",
+      admin: {
+        description:
+          "As the guest gave them at registration. Empty for guests who haven't registered yet.",
+      },
+      fields: [
+        optionFields({
+          list: "salutation",
+          relationName: "salutationOption",
+          labelName: "salutation",
+          label: "Salutation",
+        }),
+        {
+          type: "row",
+          fields: [
+            { name: "firstName", type: "text", admin: { width: "50%" } },
+            { name: "lastName", type: "text", admin: { width: "50%" } },
+          ],
+        },
+        {
+          type: "row",
+          fields: [
+            { name: "jobTitle", type: "text", admin: { width: "50%" } },
+            { name: "organisation", type: "text", admin: { width: "50%" } },
+          ],
+        },
+        optionFields({
+          list: "industry",
+          relationName: "industryOption",
+          labelName: "industry",
+          label: "Industry",
+        }),
+        optionFields({
+          list: "attendance-goal",
+          relationName: "attendanceGoalOptions",
+          labelName: "attendanceGoals",
+          label: "Attendance goals",
+          hasMany: true,
+        }),
+      ],
     },
     {
       name: "responses",

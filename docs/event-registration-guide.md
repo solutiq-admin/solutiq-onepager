@@ -400,7 +400,8 @@ Public (unauthenticated) access to any collection through `/api/...` is denied. 
 
 **Events** (nav group "Events").
 - `title`, `slug` (unique, URL-safe), `status` (`draft`, `open`, `closed`, `cancelled`), `startsAt`, `endsAt`, `venueName`, `venueAddress`, `mapUrl`, `description` (Lexical rich text), `capacity` (optional), `registrationCloses` (optional), `openRegistration` (checkbox, default true; controls the shared link), `hostUser` (defaults to creator), `replyToEmail` (defaults to host's email), `confirmationNote` (textarea appended to confirmation emails), `extraFields` (array: `name` slug, `label`, `type` of text/textarea/select/checkbox, `required`, `options` for select).
-- `applyTemplate` (optional relationship to FormTemplates; a helper, not stored state). A `beforeChange` hook: if set, and the event's `extraFields` is empty, copy the template's questions into `extraFields`, then clear `applyTemplate`. If `extraFields` is not empty, reject with a clear validation message ("Clear this event's questions before applying a template") so questions are never overwritten by accident.
+- `applyTemplate` (optional relationship to FormTemplates; a helper, not stored state). A `beforeChange` hook: if set, append the template's questions after the event's own, skipping any whose `name` is already on the event, then clear `applyTemplate`. Existing questions are never overwritten. A new event with no questions gets the default template's questions the same way.
+- `extraFields` must include the `email`, `firstName` and `lastName` standard fields (they create or find the People record); the event won't save without them.
 - **Save as template** (custom component on the Event edit view): a name input and a button (server action) that creates a FormTemplate from the event's **saved** `extraFields`. Refuses a duplicate name and tells the user to save the event first if there are unsaved changes.
 - Hidden `calendarSequence` (number, starts 0). An `afterChange` hook increments it when `startsAt`, `endsAt`, `venueName`, `venueAddress` or `status` changes, and calls `revalidatePath` for the event's public routes.
 - Access: super-admin and event-manager create/update; only super-admin deletes; list-viewer reads.
@@ -408,7 +409,8 @@ Public (unauthenticated) access to any collection through `/api/...` is denied. 
 **FormTemplates** (nav group "Events", labelled "Form templates").
 - `name` (required, unique), `description` (optional, e.g. "Guests, dietary and plus-one"), `extraFields` (the same array of questions as on Events: `name` slug, `label`, `type` of text/textarea/select/checkbox, `required`, `options` for select). Define this array field config **once** in a shared constant and use it in both collections.
 - List view columns: name, description, number of questions, last updated. Sorted by most recently updated, so the team can go back to them easily.
-- Templates hold only questions. Name and email are always fixed in code, and consent wording stays a single versioned constant, so neither appears in a template.
+- Templates hold only questions. A question can be a **standard field** (`salutation`, `firstName`, `lastName`, `email`, `jobTitle`, `organisation`, `industry`, `attendanceGoals`): its name and type are set in code, its answer is stored in its own Guestlist/People column, and choice lists come live from the `form-options` collection. Consent wording stays a single versioned constant and never appears in a template.
+- `isDefault` (checkbox, one template at most): the **Default RSVP** template, seeded by migration with the eight standard fields, is copied into every new event and can't be deleted.
 - Access: super-admin and event-manager create/update/delete; list-viewer has no access. Public read is not enabled.
 
 **Guestlist** (nav group "Events"; one row per person per event).

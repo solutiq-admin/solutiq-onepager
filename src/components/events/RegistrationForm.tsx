@@ -5,17 +5,33 @@ import { type FormEvent, type ReactNode, startTransition, useActionState, useEff
 import { registerForEvent, type RegisterState } from "@/app/(site)/events/actions";
 import { CONSENT_TEXT, FUTURE_EVENTS_TEXT, PHOTO_CONSENT_OPTIONS, PHOTO_CONSENT_TEXT, PRIVACY_URL } from "@/lib/events/consent";
 import type { Question } from "@/fields/questions";
+import { STANDARD_FIELDS, type StandardField } from "@/fields/standardFields";
+import type { FormOption, FormOptions } from "@/lib/events/form-options";
 
-// One form for both links. Personal links pass `token` plus the guest's
-// stored name and email, which are shown locked; the server takes both from
-// the guestlist entry, never from this form.
+// One form for both links: the event's questions in order, then consent.
+// Standard fields keep fixed input names (e.g. `firstName`) and take their
+// choices from Form options; custom questions are named `q.<name>`.
+// Personal links pass `token` plus whatever is stored for the guest. Their
+// email is shown locked, and the server takes it from the guestlist entry,
+// never from this form; the other details are prefilled and can be corrected.
+
+export type GuestDefaults = {
+  email: string;
+  salutation?: number | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  jobTitle?: string | null;
+  organisation?: string | null;
+  industry?: number | null;
+};
 
 type Props = {
   slug: string;
   questions: Question[];
+  options: FormOptions;
   askPhotoConsent: boolean;
   token?: string;
-  guest?: { fullName: string; email: string };
+  guest?: GuestDefaults;
 };
 
 const inputClass =
@@ -25,7 +41,7 @@ const checkboxClass = "mt-[3px] h-[18px] w-[18px] shrink-0 accent-white";
 
 const initialState: RegisterState = { status: "idle" };
 
-export function RegistrationForm({ slug, questions, askPhotoConsent, token, guest }: Props) {
+export function RegistrationForm({ slug, questions, options, askPhotoConsent, token, guest }: Props) {
   const [state, formAction, pending] = useActionState(registerForEvent, initialState);
   // Set after hydration so the time-on-page check measures this visit, not
   // when the static page was generated.
@@ -70,41 +86,20 @@ export function RegistrationForm({ slug, questions, askPhotoConsent, token, gues
         </label>
       </div>
 
-      <Field label="Full name" htmlFor="fullName" error={errors.fullName}>
-        <input
-          id="fullName"
-          name="fullName"
-          type="text"
-          autoComplete="name"
-          required
-          maxLength={200}
-          defaultValue={guest?.fullName}
-          readOnly={Boolean(guest)}
-          aria-invalid={Boolean(errors.fullName)}
-          className={inputClass}
-        />
-      </Field>
-
-      <Field
-        label="Email"
-        htmlFor="email"
-        error={errors.email}
-        hint={guest ? "This invitation is linked to this address." : undefined}
-      >
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          defaultValue={guest?.email}
-          readOnly={Boolean(guest)}
-          aria-invalid={Boolean(errors.email)}
-          className={inputClass}
-        />
-      </Field>
-
       {questions.map((question) => {
+        if (question.standard) {
+          return (
+            <StandardInput
+              key={question.standard}
+              field={question.standard}
+              label={question.label}
+              required={Boolean(question.required)}
+              options={options}
+              guest={guest}
+              error={errors[question.standard]}
+            />
+          );
+        }
         const name = `q.${question.name}`;
         const id = `q-${question.name}`;
         const error = errors[name];
@@ -202,6 +197,127 @@ function RequiredMark() {
     <span aria-hidden className="ml-1 text-[#B3AFAE]">
       *
     </span>
+  );
+}
+
+function StandardInput({
+  field,
+  label,
+  required,
+  options,
+  guest,
+  error,
+}: {
+  field: StandardField;
+  label: string;
+  required: boolean;
+  options: FormOptions;
+  guest?: GuestDefaults;
+  error?: string;
+}) {
+  const config: (typeof STANDARD_FIELDS)[StandardField] = STANDARD_FIELDS[field];
+  switch (config.kind) {
+    case "email":
+      return (
+        <Field
+          label={label}
+          htmlFor={field}
+          error={error}
+          required
+          hint={guest ? "This invitation is linked to this address." : undefined}
+        >
+          <input
+            id={field}
+            name={field}
+            type="email"
+            autoComplete="email"
+            required
+            defaultValue={guest?.email}
+            readOnly={Boolean(guest)}
+            aria-invalid={Boolean(error)}
+            className={inputClass}
+          />
+        </Field>
+      );
+    case "text":
+      return (
+        <Field label={label} htmlFor={field} error={error} required={required}>
+          <input
+            id={field}
+            name={field}
+            type="text"
+            autoComplete={config.autoComplete}
+            required={required}
+            maxLength={config.maxLength}
+            defaultValue={guestText(guest, field) ?? undefined}
+            aria-invalid={Boolean(error)}
+            className={inputClass}
+          />
+        </Field>
+      );
+    case "option":
+      return (
+        <OptionSelect
+          name={field}
+          label={label}
+          required={required}
+          options={options[config.list]}
+          defaultValue={field === "salutation" ? guest?.salutation : field === "industry" ? guest?.industry : undefined}
+          error={error}
+        />
+      );
+    case "options":
+      return (
+        <fieldset className="flex flex-col gap-3" aria-invalid={Boolean(error)}>
+          <legend className="mb-2 font-[family-name:var(--font-heading)] text-[11px] font-bold uppercase tracking-[0.2em] text-[#B3AFAE]">
+            {label}
+            {required && <RequiredMark />}
+          </legend>
+          {options[config.list].map((option) => (
+            <label key={option.id} className="flex cursor-pointer items-start gap-3 text-[15px] leading-[1.6] text-[#B3AFAE]">
+              <input type="checkbox" name={field} value={option.id} className={checkboxClass} />
+              <span>{option.label}</span>
+            </label>
+          ))}
+          {error && <p className="pl-[30px] text-[13px] text-[#ff8a8a]">{error}</p>}
+        </fieldset>
+      );
+  }
+}
+
+const guestText = (guest: GuestDefaults | undefined, field: StandardField) =>
+  field === "firstName" || field === "lastName" || field === "jobTitle" || field === "organisation"
+    ? guest?.[field]
+    : undefined;
+
+function OptionSelect({
+  name,
+  label,
+  required,
+  options,
+  defaultValue,
+  error,
+}: {
+  name: string;
+  label: string;
+  required: boolean;
+  options: FormOption[];
+  defaultValue?: number | null;
+  error?: string;
+}) {
+  // A stored choice that has since been retired falls back to "Choose one".
+  const initial = options.some((option) => option.id === defaultValue) ? String(defaultValue) : "";
+  return (
+    <Field label={label} htmlFor={name} error={error} required={required}>
+      <select id={name} name={name} required={required} defaultValue={initial} aria-invalid={Boolean(error)} className={inputClass}>
+        <option value="">{required ? "Choose one" : "Choose one (optional)"}</option>
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </Field>
   );
 }
 

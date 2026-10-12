@@ -8,6 +8,8 @@ import { sendConfirmation } from "@/lib/email/confirmation";
 import { CONSENT_VERSION, PHOTO_CONSENT_OPTIONS, type PhotoConsent } from "@/lib/events/consent";
 import { EVENT_COPY } from "@/lib/events/copy";
 import { getPublicEvent, registrationState, sharedLinkFull } from "@/lib/events/event";
+import { STANDARD_FIELDS } from "@/fields/standardFields";
+import { getFormOptions } from "@/lib/events/form-options";
 import type { Guestlist, Person } from "@/payload-types";
 
 // Public registration for both links. Everything is re-checked here against
@@ -55,13 +57,44 @@ export async function registerForEvent(
     if (state === "cancelled") return failure(EVENT_COPY.cancelled);
     if (state === "closed") return failure(EVENT_COPY.closed);
 
-    // Validate the fixed fields, consent and the event's own questions.
+    // Validate the event's questions and consent. Email, first and last
+    // name are always required; the other standard fields only when the
+    // event asks them. Choices must be active options from the right list.
     const fieldErrors: Record<string, string> = {};
-    const fullName = text(formData, "fullName").slice(0, 200);
+    const questions = event.extraFields ?? [];
+    const asked = new Map(questions.flatMap((question) => (question.standard ? [[question.standard, question]] : [])));
+    const isRequired = (field: keyof typeof STANDARD_FIELDS) => Boolean(asked.get(field)?.required);
+
+    const options = await getFormOptions();
+    const optionId = (list: keyof typeof options, raw: unknown) =>
+      options[list].find((option) => String(option.id) === raw)?.id;
+    const textOf = (field: "firstName" | "lastName" | "jobTitle" | "organisation") =>
+      asked.has(field) ? text(formData, field).slice(0, STANDARD_FIELDS[field].maxLength) || undefined : undefined;
+
+    const salutationOption = asked.has("salutation") ? optionId("salutation", text(formData, "salutation")) : undefined;
+    const firstName = text(formData, "firstName").slice(0, STANDARD_FIELDS.firstName.maxLength);
+    const lastName = text(formData, "lastName").slice(0, STANDARD_FIELDS.lastName.maxLength);
     const email = text(formData, "email").toLowerCase();
-    if (!token) {
-      if (!fullName) fieldErrors.fullName = "Please add your name.";
-      if (!EMAIL.test(email) || email.length > 254) fieldErrors.email = "Please add a valid email address.";
+    const jobTitle = textOf("jobTitle");
+    const organisation = textOf("organisation");
+    const industryOption = asked.has("industry") ? optionId("industry", text(formData, "industry")) : undefined;
+    const attendanceGoalOptions = asked.has("attendanceGoals")
+      ? [...new Set(formData.getAll("attendanceGoals").map((raw) => optionId("attendance-goal", raw)))].filter(
+          (id): id is number => id !== undefined,
+        )
+      : [];
+
+    if (!firstName) fieldErrors.firstName = "Please add your first name.";
+    if (!lastName) fieldErrors.lastName = "Please add your last name.";
+    if (!token && (!EMAIL.test(email) || email.length > 254)) {
+      fieldErrors.email = "Please add a valid email address.";
+    }
+    if (isRequired("salutation") && !salutationOption) fieldErrors.salutation = "Please choose one.";
+    if (isRequired("jobTitle") && !jobTitle) fieldErrors.jobTitle = "Please add your job title.";
+    if (isRequired("organisation") && !organisation) fieldErrors.organisation = "Please add your organisation's name.";
+    if (isRequired("industry") && !industryOption) fieldErrors.industry = "Please choose one.";
+    if (isRequired("attendanceGoals") && attendanceGoalOptions.length === 0) {
+      fieldErrors.attendanceGoals = "Please choose at least one.";
     }
     if (formData.get("consent") !== "on") {
       fieldErrors.consent = "Please confirm you agree so we can register you.";
@@ -74,7 +107,8 @@ export async function registerForEvent(
     }
 
     const responses: Record<string, string | boolean> = {};
-    for (const question of event.extraFields ?? []) {
+    for (const question of questions) {
+      if (question.standard || !question.name) continue;
       const key = `q.${question.name}`;
       if (question.type === "checkbox") {
         const checked = formData.get(key) === "on";
@@ -97,10 +131,15 @@ export async function registerForEvent(
       return { status: "error", message: "Please check the highlighted fields.", fieldErrors };
     }
 
+    // Labels are copied from the options by the Guestlist and People hooks.
+    const profile = { salutationOption, firstName, lastName, jobTitle, organisation, industryOption };
+
     const now = new Date().toISOString();
     const registration = {
       status: "registered" as const,
       registeredAt: now,
+      ...profile,
+      attendanceGoalOptions,
       responses,
       consentVersion: CONSENT_VERSION,
       consentedAt: now,
@@ -109,14 +148,20 @@ export async function registerForEvent(
 
     // Opting in from a public form only ever turns consent on. Withdrawing
     // goes through unsubscribe, so nobody can switch it off for someone else.
-    const recordFutureConsent = async (person: Person | number) => {
-      if (!futureEventsConsent) return;
+    // A personal link also fills in details the person record is missing,
+    // never overwriting them. The shared link can't prove who is registering,
+    // so it leaves an existing person's details alone.
+    const updatePerson = async (person: Person | number, fillProfile: boolean) => {
       const id = typeof person === "object" ? person.id : person;
-      await payload.update({
-        collection: "people",
-        id,
-        data: { futureEventsConsent: true },
-      });
+      let data: Partial<Person> = {};
+      if (fillProfile) {
+        const current = await payload.findByID({ collection: "people", id, depth: 0 });
+        data = Object.fromEntries(
+          Object.entries(profile).filter(([key, value]) => value !== undefined && !current[key as keyof typeof profile]),
+        );
+      }
+      if (futureEventsConsent) data.futureEventsConsent = true;
+      if (Object.keys(data).length > 0) await payload.update({ collection: "people", id, data });
     };
 
     // Only a registration that actually happens here gets a confirmation;
@@ -136,7 +181,7 @@ export async function registerForEvent(
       if (entry.status === "registered") return success; // idempotent
 
       await payload.update({ collection: "guestlist", id: entry.id, data: registration });
-      await recordFutureConsent(entry.person);
+      await updatePerson(entry.person, true);
       confirm(entry.id);
       return success;
     }
@@ -151,7 +196,7 @@ export async function registerForEvent(
       // Already on the guestlist: upgrade in place, keep its source.
       if (existing.status === "invited") {
         await payload.update({ collection: "guestlist", id: existing.id, data: registration });
-        await recordFutureConsent(existing.person);
+        await updatePerson(existing.person, false);
         confirm(existing.id);
       }
       // Registered already, or cancelled by the team: change nothing.
@@ -160,8 +205,8 @@ export async function registerForEvent(
 
     if (await sharedLinkFull(event)) return failure(EVENT_COPY.full);
 
-    // An existing person keeps their stored name.
-    const person = found ?? (await createPerson(payload, email, fullName));
+    // An existing person keeps their stored details.
+    const person = found ?? (await createPerson(payload, email, profile));
     let created: Guestlist;
     try {
       created = await payload.create({
@@ -173,7 +218,7 @@ export async function registerForEvent(
       if (await findEntry(payload, event.id, person.id)) return success;
       throw error;
     }
-    await recordFutureConsent(person);
+    await updatePerson(person, false);
     confirm(created.id);
     return success;
   } catch (error) {
@@ -194,11 +239,22 @@ async function findPerson(payload: Payload, email: string): Promise<Person | und
   return docs[0];
 }
 
-async function createPerson(payload: Payload, email: string, fullName: string): Promise<Person> {
+type Profile = Pick<
+  Person,
+  "salutationOption" | "firstName" | "lastName" | "jobTitle" | "organisation" | "industryOption"
+>;
+
+async function createPerson(payload: Payload, email: string, profile: Profile): Promise<Person> {
   try {
     return await payload.create({
       collection: "people",
-      data: { fullName, email, type: "guest", createdVia: "shared-link" },
+      data: {
+        ...profile,
+        fullName: `${profile.firstName} ${profile.lastName}`,
+        email,
+        type: "guest",
+        createdVia: "shared-link",
+      },
     });
   } catch (error) {
     // A simultaneous submit created the person first; use that record.

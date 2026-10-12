@@ -1,9 +1,8 @@
 import { revalidatePath } from "next/cache";
 import type { CollectionConfig } from "payload";
-import { ValidationError } from "payload";
 
 import { isAnyRole, isManager, isSuperAdmin, systemOnlyField } from "../access";
-import { copyQuestions, questionsField } from "../fields/questions";
+import { copyQuestions, eventQuestionsField } from "../fields/questions";
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -59,30 +58,36 @@ export const Events: CollectionConfig = {
       },
     ],
     beforeChange: [
-      // Copy a template's questions into the event, then forget the template.
-      async ({ data, originalDoc, req }) => {
-        if (!data.applyTemplate) return data;
-        const templateId =
-          typeof data.applyTemplate === "object" ? data.applyTemplate.id : data.applyTemplate;
+      // Add a template's questions after the event's own, then forget the
+      // template. A new event with no questions gets the default template.
+      // Questions already on the event (same name) are kept as they are.
+      async ({ data, operation, originalDoc, req }) => {
         const current = data.extraFields ?? originalDoc?.extraFields ?? [];
-        if (current.length > 0) {
-          throw new ValidationError({
-            collection: "events",
-            errors: [
-              {
-                path: "applyTemplate",
-                message: "Clear this event's questions before applying a template.",
-              },
-            ],
+        let templateId =
+          typeof data.applyTemplate === "object" ? data.applyTemplate?.id : data.applyTemplate;
+        if (!templateId && operation === "create" && current.length === 0) {
+          const { docs } = await req.payload.find({
+            collection: "form-templates",
+            where: { isDefault: { equals: true } },
+            limit: 1,
+            depth: 0,
+            select: {},
+            req,
           });
+          templateId = docs[0]?.id;
         }
+        if (!templateId) return data;
         const template = await req.payload.findByID({
           collection: "form-templates",
           id: templateId,
           depth: 0,
           req,
         });
-        data.extraFields = copyQuestions(template.extraFields);
+        const names = new Set(current.map((question: { name?: string }) => question.name));
+        data.extraFields = [
+          ...current,
+          ...copyQuestions(template.extraFields).filter((question) => !names.has(question.name)),
+        ];
         data.applyTemplate = null;
         return data;
       },
@@ -245,10 +250,10 @@ export const Events: CollectionConfig = {
           relationTo: "form-templates",
           admin: {
             description:
-              "Copies the template's questions into this event when you save. Only works while the event has no questions.",
+              "Adds the template's questions after this event's own when you save. Questions already here are kept as they are.",
           },
         },
-        questionsField,
+        eventQuestionsField,
         {
           name: "saveAsTemplate",
           type: "ui",

@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     events: Event;
     'form-templates': FormTemplate;
+    'form-options': FormOption;
     guestlist: Guestlist;
     messages: Message;
     deliveries: Delivery;
@@ -83,6 +84,7 @@ export interface Config {
   collectionsSelect: {
     events: EventsSelect<false> | EventsSelect<true>;
     'form-templates': FormTemplatesSelect<false> | FormTemplatesSelect<true>;
+    'form-options': FormOptionsSelect<false> | FormOptionsSelect<true>;
     guestlist: GuestlistSelect<false> | GuestlistSelect<true>;
     messages: MessagesSelect<false> | MessagesSelect<true>;
     deliveries: DeliveriesSelect<false> | DeliveriesSelect<true>;
@@ -173,23 +175,38 @@ export interface Event {
    */
   askPhotoConsent?: boolean | null;
   /**
-   * Copies the template's questions into this event when you save. Only works while the event has no questions.
+   * Adds the template's questions after this event's own when you save. Questions already here are kept as they are.
    */
   applyTemplate?: (number | null) | FormTemplate;
   /**
-   * Asked after name and email, which are always included. Changing questions after people have registered does not change their stored answers.
+   * Standard fields save to the guest's record and take their choices from Form options. Every event must ask for business email, first name and last name. Changing questions after people have registered does not change their stored answers.
    */
   extraFields?:
     | {
         /**
-         * The question as guests see it.
+         * Leave empty for a custom question.
+         */
+        standard?:
+          | (
+              | 'salutation'
+              | 'firstName'
+              | 'lastName'
+              | 'email'
+              | 'jobTitle'
+              | 'organisation'
+              | 'industry'
+              | 'attendanceGoals'
+            )
+          | null;
+        /**
+         * The question as guests see it. Filled in for standard fields if left empty.
          */
         label: string;
         /**
          * Internal key, e.g. dietary_needs. Lowercase, numbers, underscores.
          */
-        name: string;
-        type: 'text' | 'textarea' | 'select' | 'checkbox';
+        name?: string | null;
+        type?: ('text' | 'textarea' | 'select' | 'checkbox') | null;
         required?: boolean | null;
         /**
          * Type each choice and press Enter.
@@ -212,29 +229,48 @@ export interface Event {
   createdAt: string;
 }
 /**
- * Reusable registration questions. Name, email and consent are always added in code.
+ * Reusable registration questions. The default template is copied into every new event. Consent is always added in code.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-templates".
  */
 export interface FormTemplate {
   id: number;
+  /**
+   * Copied into every new event. Only one template can be the default.
+   */
+  isDefault?: boolean | null;
   name: string;
   description?: string | null;
   /**
-   * Asked after name and email, which are always included. Changing questions after people have registered does not change their stored answers.
+   * Standard fields save to the guest's record and take their choices from Form options. Every event must ask for business email, first name and last name. Changing questions after people have registered does not change their stored answers.
    */
   extraFields?:
     | {
         /**
-         * The question as guests see it.
+         * Leave empty for a custom question.
+         */
+        standard?:
+          | (
+              | 'salutation'
+              | 'firstName'
+              | 'lastName'
+              | 'email'
+              | 'jobTitle'
+              | 'organisation'
+              | 'industry'
+              | 'attendanceGoals'
+            )
+          | null;
+        /**
+         * The question as guests see it. Filled in for standard fields if left empty.
          */
         label: string;
         /**
          * Internal key, e.g. dietary_needs. Lowercase, numbers, underscores.
          */
-        name: string;
-        type: 'text' | 'textarea' | 'select' | 'checkbox';
+        name?: string | null;
+        type?: ('text' | 'textarea' | 'select' | 'checkbox') | null;
         required?: boolean | null;
         /**
          * Type each choice and press Enter.
@@ -278,6 +314,30 @@ export interface User {
   collection: 'users';
 }
 /**
+ * Salutation, industry and attendance-goal choices on every registration form. Untick Active to retire an option; past registrations keep their answer.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form-options".
+ */
+export interface FormOption {
+  id: number;
+  /**
+   * As guests see it. Renaming doesn't change answers already given.
+   */
+  label: string;
+  list: 'salutation' | 'industry' | 'attendance-goal';
+  /**
+   * Lower numbers come first. Leave gaps (10, 20, 30) to slot options in later.
+   */
+  sortOrder: number;
+  /**
+   * Unticked options are hidden from the form but kept on past registrations.
+   */
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "guestlist".
  */
@@ -288,6 +348,25 @@ export interface Guestlist {
   status: 'invited' | 'registered' | 'cancelled';
   source: 'guestlist' | 'shared-link' | 'manual';
   registeredAt?: string | null;
+  salutationOption?: (number | null) | FormOption;
+  /**
+   * Copied from the option when it's chosen.
+   */
+  salutation?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  jobTitle?: string | null;
+  organisation?: string | null;
+  industryOption?: (number | null) | FormOption;
+  /**
+   * Copied from the option when it's chosen.
+   */
+  industry?: string | null;
+  attendanceGoalOptions?: (number | FormOption)[] | null;
+  /**
+   * Copied from the option when it's chosen.
+   */
+  attendanceGoals?: string[] | null;
   /**
    * Answers to the event's registration questions.
    */
@@ -327,10 +406,26 @@ export interface Guestlist {
  */
 export interface Person {
   id: number;
+  /**
+   * Used in emails. Filled from first and last name if left empty.
+   */
   fullName: string;
+  salutationOption?: (number | null) | FormOption;
+  /**
+   * Copied from the option when it's chosen.
+   */
+  salutation?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   email: string;
   type: 'guest' | 'partner' | 'other';
+  jobTitle?: string | null;
   organisation?: string | null;
+  industryOption?: (number | null) | FormOption;
+  /**
+   * Copied from the option when it's chosen.
+   */
+  industry?: string | null;
   /**
    * Staff only. Never shown to the person or included in emails.
    */
@@ -431,6 +526,10 @@ export interface PayloadLockedDocument {
         value: number | FormTemplate;
       } | null)
     | ({
+        relationTo: 'form-options';
+        value: number | FormOption;
+      } | null)
+    | ({
         relationTo: 'guestlist';
         value: number | Guestlist;
       } | null)
@@ -514,6 +613,7 @@ export interface EventsSelect<T extends boolean = true> {
   extraFields?:
     | T
     | {
+        standard?: T;
         label?: T;
         name?: T;
         type?: T;
@@ -533,11 +633,13 @@ export interface EventsSelect<T extends boolean = true> {
  * via the `definition` "form-templates_select".
  */
 export interface FormTemplatesSelect<T extends boolean = true> {
+  isDefault?: T;
   name?: T;
   description?: T;
   extraFields?:
     | T
     | {
+        standard?: T;
         label?: T;
         name?: T;
         type?: T;
@@ -545,6 +647,18 @@ export interface FormTemplatesSelect<T extends boolean = true> {
         options?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form-options_select".
+ */
+export interface FormOptionsSelect<T extends boolean = true> {
+  label?: T;
+  list?: T;
+  sortOrder?: T;
+  active?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -558,6 +672,16 @@ export interface GuestlistSelect<T extends boolean = true> {
   status?: T;
   source?: T;
   registeredAt?: T;
+  salutationOption?: T;
+  salutation?: T;
+  firstName?: T;
+  lastName?: T;
+  jobTitle?: T;
+  organisation?: T;
+  industryOption?: T;
+  industry?: T;
+  attendanceGoalOptions?: T;
+  attendanceGoals?: T;
   responses?: T;
   consentVersion?: T;
   consentedAt?: T;
@@ -610,9 +734,16 @@ export interface DeliveriesSelect<T extends boolean = true> {
  */
 export interface PeopleSelect<T extends boolean = true> {
   fullName?: T;
+  salutationOption?: T;
+  salutation?: T;
+  firstName?: T;
+  lastName?: T;
   email?: T;
   type?: T;
+  jobTitle?: T;
   organisation?: T;
+  industryOption?: T;
+  industry?: T;
   internalNotes?: T;
   futureEventsConsent?: T;
   marketingOptOut?: T;

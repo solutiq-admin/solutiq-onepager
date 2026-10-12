@@ -7,6 +7,7 @@ import sharp from "sharp";
 
 import { Deliveries } from "./collections/Deliveries";
 import { Events } from "./collections/Events";
+import { FormOptions } from "./collections/FormOptions";
 import { FormTemplates } from "./collections/FormTemplates";
 import { Guestlist } from "./collections/Guestlist";
 import { Messages } from "./collections/Messages";
@@ -39,8 +40,8 @@ export default buildConfig({
     },
   },
   // Order sets the admin nav. Groups are set on each collection:
-  // Events (Events, Form templates, Guestlist, Messages, Deliveries), People (People), Settings (Users).
-  collections: [Events, FormTemplates, Guestlist, Messages, Deliveries, People, Users],
+  // Events (Events, Form templates, Form options, Guestlist, Messages, Deliveries), People (People), Settings (Users).
+  collections: [Events, FormTemplates, FormOptions, Guestlist, Messages, Deliveries, People, Users],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || "",
   typescript: {

@@ -6,9 +6,10 @@ import { RegistrationForm } from "@/components/events/RegistrationForm";
 import type { Question } from "@/fields/questions";
 import { EVENT_COPY } from "@/lib/events/copy";
 import { getPublicEvent, registrationState, sharedLinkFull } from "@/lib/events/event";
+import { getFormOptions } from "@/lib/events/form-options";
 
-// Shared link. Static with ISR: the Events afterChange hook revalidates this
-// path on every save; the timer catches capacity filling up and
+// Shared link. Static with ISR: the Events and FormOptions afterChange hooks
+// revalidate this page on every save; the timer catches capacity filling up and
 // registrationCloses passing. registerForEvent re-checks all of it anyway.
 export const revalidate = 60;
 
@@ -42,6 +43,7 @@ export default async function EventPage({ params }: Props) {
       <RegistrationForm
         slug={event.slug}
         questions={(event.extraFields ?? []) as Question[]}
+        options={await getFormOptions()}
         askPhotoConsent={Boolean(event.askPhotoConsent)}
       />
     );
