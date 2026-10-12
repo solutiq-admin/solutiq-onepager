@@ -38,7 +38,7 @@ export const Events: CollectionConfig = {
   slug: "events",
   admin: {
     useAsTitle: "title",
-    defaultColumns: ["title", "startsAt", "status", "venueName", "updatedAt"],
+    defaultColumns: ["title", "startsAt", "status", "venueName", "updatedAt", "preview"],
     group: "Events",
   },
   defaultSort: "-startsAt",
@@ -318,6 +318,17 @@ export const Events: CollectionConfig = {
           },
         },
       ],
+    },
+    {
+      name: "preview",
+      label: "Preview",
+      type: "ui",
+      admin: {
+        components: {
+          Field: false,
+          Cell: "@/components/admin/EventPreviewCell#EventPreviewCell",
+        },
+      },
     },
     {
       name: "quickAdd",

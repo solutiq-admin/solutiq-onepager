@@ -23,6 +23,7 @@ import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { QuestionRowLabel as QuestionRowLabel_54cacc7f37318f7275aa4cd70b31960d } from '@/components/admin/QuestionRowLabel'
 import { SaveAsTemplate as SaveAsTemplate_716658c7dd735c0e7d37637e0da1936e } from '@/components/admin/SaveAsTemplate'
+import { EventPreviewCell as EventPreviewCell_1e289979ed42d25ae8ecf06fab96eedc } from '@/components/admin/EventPreviewCell'
 import { QuickAdd as QuickAdd_4158a0e3c54b85a5ff9dcc38f427a890 } from '@/components/admin/QuickAdd'
 import { QuestionCountCell as QuestionCountCell_b9cdf4e3b91b6c0abdf7f1b5d771588c } from '@/components/admin/QuestionCountCell'
 import { PersonEmailCell as PersonEmailCell_2f7cf9b2c71bbde8ab85792421198a17 } from '@/components/admin/PersonEmailCell'
@@ -61,6 +62,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/components/admin/QuestionRowLabel#QuestionRowLabel": QuestionRowLabel_54cacc7f37318f7275aa4cd70b31960d,
   "@/components/admin/SaveAsTemplate#SaveAsTemplate": SaveAsTemplate_716658c7dd735c0e7d37637e0da1936e,
+  "@/components/admin/EventPreviewCell#EventPreviewCell": EventPreviewCell_1e289979ed42d25ae8ecf06fab96eedc,
   "@/components/admin/QuickAdd#QuickAdd": QuickAdd_4158a0e3c54b85a5ff9dcc38f427a890,
   "@/components/admin/QuestionCountCell#QuestionCountCell": QuestionCountCell_b9cdf4e3b91b6c0abdf7f1b5d771588c,
   "@/components/admin/PersonEmailCell#PersonEmailCell": PersonEmailCell_2f7cf9b2c71bbde8ab85792421198a17,
