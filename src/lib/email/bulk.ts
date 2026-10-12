@@ -114,7 +114,6 @@ export function composeMessageEmail(input: {
     subject: fillVariables(message.subject, vars).replace(/[\r\n]+/g, " "),
     body: fillVariables(message.body, vars),
     title: event.title,
-    siteUrl: base,
     unsubscribeUrl,
   });
 
