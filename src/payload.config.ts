@@ -27,9 +27,19 @@ export default buildConfig({
     },
     meta: {
       titleSuffix: "- SOLUTIQ Admin",
+      icons: [{ rel: "icon", type: "image/png", url: "/assets/solutiq-favicon.png" }],
+    },
+    // Dark only: the logo is white and the brand canvas is black.
+    theme: "dark",
+    components: {
+      graphics: {
+        Logo: "@/components/admin/Logo#Logo",
+        Icon: "@/components/admin/Icon#Icon",
+      },
     },
   },
-  // Order sets the admin nav: Events group, then People, then Settings.
+  // Order sets the admin nav. Groups are set on each collection:
+  // Events (Events, Form templates, Guestlist, Messages, Deliveries), People (People), Settings (Users).
   collections: [Events, FormTemplates, Guestlist, Messages, Deliveries, People, Users],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || "",

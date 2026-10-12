@@ -30,6 +30,8 @@ import { DeliveryStatusCell as DeliveryStatusCell_dcd2aeb9a6409445519482b6a48eb1
 import { DeliveryHistory as DeliveryHistory_9f43fa6e3b8d0723e1f9e668c42a5543 } from '@/components/admin/DeliveryHistory'
 import { GuestlistFollowUp as GuestlistFollowUp_4d23ce17d531a7645209fa2fc865956f } from '@/components/admin/GuestlistFollowUp'
 import { MessageSend as MessageSend_bc4f6638b3e01ac8e9b82aa527963368 } from '@/components/admin/MessageSend'
+import { Icon as Icon_534076e2c753ea5d539a54b05f456b1b } from '@/components/admin/Icon'
+import { Logo as Logo_a44df17d0fc3dcd873dae43dc3bf66bd } from '@/components/admin/Logo'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -66,5 +68,7 @@ export const importMap = {
   "@/components/admin/DeliveryHistory#DeliveryHistory": DeliveryHistory_9f43fa6e3b8d0723e1f9e668c42a5543,
   "@/components/admin/GuestlistFollowUp#GuestlistFollowUp": GuestlistFollowUp_4d23ce17d531a7645209fa2fc865956f,
   "@/components/admin/MessageSend#MessageSend": MessageSend_bc4f6638b3e01ac8e9b82aa527963368,
+  "@/components/admin/Icon#Icon": Icon_534076e2c753ea5d539a54b05f456b1b,
+  "@/components/admin/Logo#Logo": Logo_a44df17d0fc3dcd873dae43dc3bf66bd,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

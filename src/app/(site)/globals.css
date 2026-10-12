@@ -6,6 +6,13 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* SOLUTIQ brand palette. Gold is accent only; silver is supporting text only. */
+  --color-black: #0A0A0A;
+  --color-navy: #161B35;
+  --color-product-dark: #211F27;
+  --color-gold: #F9B630;
+  --color-white: #FFFFFF;
+  --color-silver: #B3AFAE;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);

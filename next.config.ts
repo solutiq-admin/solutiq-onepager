@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 import { withPayload } from "@payloadcms/next/withPayload";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Two root layouts ((site) and (payload)), so unmatched URLs need app/global-not-found.tsx.
+    globalNotFound: true,
+  },
   async headers() {
     return [
       {
