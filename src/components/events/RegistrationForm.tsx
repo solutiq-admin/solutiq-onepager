@@ -3,7 +3,7 @@
 import { type FormEvent, type ReactNode, startTransition, useActionState, useEffect, useRef } from "react";
 
 import { registerForEvent, type RegisterState } from "@/app/(site)/events/actions";
-import { CONSENT_TEXT, FUTURE_EVENTS_TEXT, PRIVACY_URL } from "@/lib/events/consent";
+import { CONSENT_TEXT, FUTURE_EVENTS_TEXT, PHOTO_CONSENT_OPTIONS, PHOTO_CONSENT_TEXT, PRIVACY_URL } from "@/lib/events/consent";
 import type { Question } from "@/fields/questions";
 
 // One form for both links. Personal links pass `token` plus the guest's
@@ -13,6 +13,7 @@ import type { Question } from "@/fields/questions";
 type Props = {
   slug: string;
   questions: Question[];
+  askPhotoConsent: boolean;
   token?: string;
   guest?: { fullName: string; email: string };
 };
@@ -24,7 +25,7 @@ const checkboxClass = "mt-[3px] h-[18px] w-[18px] shrink-0 accent-white";
 
 const initialState: RegisterState = { status: "idle" };
 
-export function RegistrationForm({ slug, questions, token, guest }: Props) {
+export function RegistrationForm({ slug, questions, askPhotoConsent, token, guest }: Props) {
   const [state, formAction, pending] = useActionState(registerForEvent, initialState);
   // Set after hydration so the time-on-page check measures this visit, not
   // when the static page was generated.
@@ -143,6 +144,23 @@ export function RegistrationForm({ slug, questions, token, guest }: Props) {
             );
         }
       })}
+
+      {askPhotoConsent && (
+        <fieldset className="flex flex-col gap-3" aria-invalid={Boolean(errors.photoConsent)}>
+          <legend className="mb-2 font-[family-name:var(--font-heading)] text-[11px] font-bold uppercase tracking-[0.2em] text-[#B3AFAE]">
+            Photography
+            <RequiredMark />
+          </legend>
+          <p className="text-[15px] leading-[1.6] text-[#B3AFAE]">{PHOTO_CONSENT_TEXT}</p>
+          {PHOTO_CONSENT_OPTIONS.map((option) => (
+            <label key={option.value} className="flex cursor-pointer items-start gap-3 text-[15px] leading-[1.6] text-[#B3AFAE]">
+              <input type="radio" name="photoConsent" value={option.value} required className={checkboxClass} />
+              <span>{option.label}</span>
+            </label>
+          ))}
+          {errors.photoConsent && <p className="pl-[30px] text-[13px] text-[#ff8a8a]">{errors.photoConsent}</p>}
+        </fieldset>
+      )}
 
       <div className="flex flex-col gap-4 border-t border-white/[0.08] pt-6">
         <CheckboxRow id="consent" name="consent" error={errors.consent} required>

@@ -73,6 +73,7 @@ export const Guestlist: CollectionConfig = {
       "event",
       "status",
       "source",
+      "photoConsent",
       "lastInviteStatus",
       "lastEmailStatus",
       "lastEmailAt",
@@ -184,6 +185,20 @@ export const Guestlist: CollectionConfig = {
           },
         },
       ],
+    },
+    {
+      name: "photoConsent",
+      label: "Photography consent",
+      type: "select",
+      index: true,
+      options: [
+        { label: "Yes", value: "yes" },
+        { label: "No", value: "no" },
+      ],
+      admin: {
+        description:
+          "The guest's answer at registration. Empty if the event didn't ask. Change it if a guest withdraws consent.",
+      },
     },
     {
       name: "token",

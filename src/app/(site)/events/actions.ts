@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { getPayload } from "payload";
 
 import { sendConfirmation } from "@/lib/email/confirmation";
-import { CONSENT_VERSION } from "@/lib/events/consent";
+import { CONSENT_VERSION, PHOTO_CONSENT_OPTIONS, type PhotoConsent } from "@/lib/events/consent";
 import { EVENT_COPY } from "@/lib/events/copy";
 import { getPublicEvent, registrationState, sharedLinkFull } from "@/lib/events/event";
 import type { Guestlist, Person } from "@/payload-types";
@@ -67,6 +67,11 @@ export async function registerForEvent(
       fieldErrors.consent = "Please confirm you agree so we can register you.";
     }
     const futureEventsConsent = formData.get("futureEvents") === "on";
+    let photoConsent: PhotoConsent | undefined;
+    if (event.askPhotoConsent) {
+      photoConsent = PHOTO_CONSENT_OPTIONS.find((option) => option.value === text(formData, "photoConsent"))?.value;
+      if (!photoConsent) fieldErrors.photoConsent = "Please choose one.";
+    }
 
     const responses: Record<string, string | boolean> = {};
     for (const question of event.extraFields ?? []) {
@@ -99,6 +104,7 @@ export async function registerForEvent(
       responses,
       consentVersion: CONSENT_VERSION,
       consentedAt: now,
+      photoConsent,
     };
 
     // Opting in from a public form only ever turns consent on. Withdrawing

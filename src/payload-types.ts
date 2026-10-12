@@ -169,6 +169,10 @@ export interface Event {
   capacity?: number | null;
   registrationCloses?: string | null;
   /**
+   * Adds a required yes/no photography question to the form. Turn off if nobody will take photographs or video.
+   */
+  askPhotoConsent?: boolean | null;
+  /**
    * Copies the template's questions into this event when you save. Only works while the event has no questions.
    */
   applyTemplate?: (number | null) | FormTemplate;
@@ -301,6 +305,10 @@ export interface Guestlist {
    */
   consentVersion?: string | null;
   consentedAt?: string | null;
+  /**
+   * The guest's answer at registration. Empty if the event didn't ask. Change it if a guest withdraws consent.
+   */
+  photoConsent?: ('yes' | 'no') | null;
   /**
    * Personal registration link key. Generated automatically.
    */
@@ -501,6 +509,7 @@ export interface EventsSelect<T extends boolean = true> {
   openRegistration?: T;
   capacity?: T;
   registrationCloses?: T;
+  askPhotoConsent?: T;
   applyTemplate?: T;
   extraFields?:
     | T
@@ -552,6 +561,7 @@ export interface GuestlistSelect<T extends boolean = true> {
   responses?: T;
   consentVersion?: T;
   consentedAt?: T;
+  photoConsent?: T;
   token?: T;
   lastInviteStatus?: T;
   lastEmailStatus?: T;

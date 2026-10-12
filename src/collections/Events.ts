@@ -229,6 +229,16 @@ export const Events: CollectionConfig = {
           ],
         },
         {
+          name: "askPhotoConsent",
+          label: "Ask guests for photography consent",
+          type: "checkbox",
+          defaultValue: true,
+          admin: {
+            description:
+              "Adds a required yes/no photography question to the form. Turn off if nobody will take photographs or video.",
+          },
+        },
+        {
           name: "applyTemplate",
           label: "Apply a form template",
           type: "relationship",

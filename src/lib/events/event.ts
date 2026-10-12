@@ -24,6 +24,7 @@ export type PublicEvent = Pick<
   | "registrationCloses"
   | "openRegistration"
   | "extraFields"
+  | "askPhotoConsent"
 >;
 
 // cache(): the page and its metadata share one query per request.
@@ -48,6 +49,7 @@ export const getPublicEvent = cache(async (slug: string): Promise<PublicEvent | 
       registrationCloses: true,
       openRegistration: true,
       extraFields: true,
+      askPhotoConsent: true,
     },
   });
   return (docs[0] as PublicEvent | undefined) ?? null;

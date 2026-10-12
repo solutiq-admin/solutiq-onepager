@@ -62,6 +62,7 @@ export default async function PersonalEventPage({ params }: Props) {
         token={token}
         guest={{ fullName: person.fullName, email: person.email }}
         questions={(event.extraFields ?? []) as Question[]}
+        askPhotoConsent={Boolean(event.askPhotoConsent)}
       />
     );
 

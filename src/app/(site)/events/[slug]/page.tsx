@@ -37,7 +37,14 @@ export default async function EventPage({ params }: Props) {
   else if (state === "closed") panel = <EventNotice title={EVENT_COPY.closed} />;
   else if (!event.openRegistration) panel = <EventNotice title={EVENT_COPY.inviteOnly} />;
   else if (await sharedLinkFull(event)) panel = <EventNotice title={EVENT_COPY.full} />;
-  else panel = <RegistrationForm slug={event.slug} questions={(event.extraFields ?? []) as Question[]} />;
+  else
+    panel = (
+      <RegistrationForm
+        slug={event.slug}
+        questions={(event.extraFields ?? []) as Question[]}
+        askPhotoConsent={Boolean(event.askPhotoConsent)}
+      />
+    );
 
   return <EventDetails event={event}>{panel}</EventDetails>;
 }
